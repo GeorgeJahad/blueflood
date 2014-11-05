@@ -16,6 +16,7 @@
 
 package com.rackspacecloud.blueflood.inputs.handlers;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.AsyncFunction;
@@ -27,10 +28,12 @@ import com.rackspacecloud.blueflood.exceptions.InvalidDataException;
 import com.rackspacecloud.blueflood.http.HttpRequestHandler;
 import com.rackspacecloud.blueflood.http.HttpResponder;
 import com.rackspacecloud.blueflood.inputs.formats.JSONMetricsContainer;
+import com.rackspacecloud.blueflood.inputs.processors.BatchWriter;
 import com.rackspacecloud.blueflood.inputs.processors.DiscoveryWriter;
 import com.rackspacecloud.blueflood.inputs.processors.RollupTypeCacher;
 import com.rackspacecloud.blueflood.inputs.processors.TypeAndUnitProcessor;
 import com.rackspacecloud.blueflood.io.Constants;
+import com.rackspacecloud.blueflood.io.IMetricsWriter;
 import com.rackspacecloud.blueflood.types.IMetric;
 import com.rackspacecloud.blueflood.types.Metric;
 import com.rackspacecloud.blueflood.types.MetricsCollection;
@@ -58,15 +61,20 @@ public class HttpMetricsIngestionHandler implements HttpRequestHandler {
 
     protected final ObjectMapper mapper;
     protected final TypeFactory typeFactory;
-    private final AsyncChain<MetricsCollection, List<Boolean>> processorChain;
     private final TypeAndUnitProcessor typeAndUnitProcessor;
     private final RollupTypeCacher rollupTypeCacher;
     private final DiscoveryWriter discoveryWriter;
+    private final BatchWriter batchWriter;
+    private ScheduleContext context;
+    private IMetricsWriter writer;
     private final TimeValue timeout;
     private IncomingMetricMetadataAnalyzer metricMetadataAnalyzer =
             new IncomingMetricMetadataAnalyzer(MetadataCache.getInstance());
     private int HTTP_MAX_TYPE_UNIT_PROCESSOR_THREADS = Configuration.getInstance().getIntegerProperty(HttpConfig.HTTP_MAX_TYPE_UNIT_PROCESSOR_THREADS);
+    private final Counter bufferedMetrics = Metrics.counter(HttpMetricsIngestionHandler.class, "Buffered Metrics");
     private static int BATCH_SIZE = Configuration.getInstance().getIntegerProperty(CoreConfig.METRIC_BATCH_SIZE);
+    private static int WRITE_THREADS = Configuration.getInstance().getIntegerProperty(CoreConfig.METRICS_BATCH_WRITER_THREADS); // metrics will be batched into this many partitions.
+    private static TimeValue DEFAULT_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
 
     // Metrics
     private static final Timer jsonTimer = Metrics.timer(HttpMetricsIngestionHandler.class, "HTTP Ingestion json processing timer");
@@ -74,13 +82,14 @@ public class HttpMetricsIngestionHandler implements HttpRequestHandler {
     private static final Timer sendResponseTimer = Metrics.timer(HttpMetricsIngestionHandler.class, "HTTP Ingestion response sending timer");
 
 
-    public HttpMetricsIngestionHandler(AsyncChain<MetricsCollection, List<Boolean>> processorChain, TimeValue timeout) {
+    public HttpMetricsIngestionHandler(ScheduleContext context, IMetricsWriter writer) {
         this.mapper = new ObjectMapper();
         this.typeFactory = TypeFactory.defaultInstance();
-        this.timeout = timeout;
-        this.processorChain = processorChain;
+        this.timeout = DEFAULT_TIMEOUT; //TODO: make configurable
+        this.context = context;
+        this.writer = writer;
 
-        this.typeAndUnitProcessor = 
+        typeAndUnitProcessor = 
             new TypeAndUnitProcessor(new ThreadPoolBuilder()
                 .withName("Metric type and unit processing")
                 .withCorePoolSize(HTTP_MAX_TYPE_UNIT_PROCESSOR_THREADS)
@@ -89,6 +98,7 @@ public class HttpMetricsIngestionHandler implements HttpRequestHandler {
                 metricMetadataAnalyzer);
         typeAndUnitProcessor.withLogger(log);
 
+        // RollupRunnable keeps a static one of these. It would be nice if we could register it and share.
         MetadataCache rollupTypeCache = MetadataCache.createLoadingCacheInstance(
                 new TimeValue(48, TimeUnit.HOURS),
                 Configuration.getInstance().getIntegerProperty(CoreConfig.MAX_ROLLUP_READ_THREADS));
@@ -106,6 +116,19 @@ public class HttpMetricsIngestionHandler implements HttpRequestHandler {
             .build());
         discoveryWriter.withLogger(log);
 
+        batchWriter = new BatchWriter(
+                new ThreadPoolBuilder()
+                        .withName("Metric Batch Writing")
+                        .withCorePoolSize(WRITE_THREADS)
+                        .withMaxPoolSize(WRITE_THREADS)
+                        .withUnboundedQueue()
+                        .build(),
+                writer,
+                timeout,
+                bufferedMetrics,
+                context
+        );
+        batchWriter.withLogger(log);
 
     }
 
@@ -190,8 +213,9 @@ public class HttpMetricsIngestionHandler implements HttpRequestHandler {
             typeAndUnitProcessor.apply(collection);
             rollupTypeCacher.apply(collection);
             List<List<IMetric>> batches  = collection.splitMetricsIntoBatches(BATCH_SIZE);
-            ListenableFuture<List<Boolean>> futures = processorChain.apply(collection);
-	    log.error("gbjfixingHandler2\n");
+            discoveryWriter.apply(batches);
+            ListenableFuture<List<Boolean>> futures = batchWriter.apply(batches);
+	    log.error("gbjfixingHandler3\n");
             List<Boolean> persisteds = futures.get(timeout.getValue(), timeout.getUnit());
             for (Boolean persisted : persisteds) {
                 if (!persisted) {
