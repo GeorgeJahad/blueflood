@@ -67,24 +67,24 @@ public class IncomingMetricMetadataAnalyzer {
     }
 
     private IncomingMetricException checkMeta(Locator locator, String key, String incoming) throws CacheException {
-        Timer.Context ctx = checkMetaTimer.time();
-        try {
-            String existing = cache.get(locator, key, String.class);
-
-            // always update the cache. it is smart enough to avoid needless writes.
-            cache.put(locator, key, incoming);
-
-            boolean differs = existing != null && !incoming.equals(existing);
-            if (differs) {
-                if (key.equals(MetricMetadata.UNIT.name().toLowerCase())) {
-                    return new IncomingUnitException(locator, existing, incoming);
-                } else {
-                    return new IncomingTypeException(locator, existing, incoming);
-                }
-            }
-        } finally {
-            ctx.stop();
-        }
+        // Timer.Context ctx = checkMetaTimer.time();
+        // try {
+        //     String existing = cache.get(locator, key, String.class);
+        //
+        //     // always update the cache. it is smart enough to avoid needless writes.
+        //     cache.put(locator, key, incoming);
+        //
+        //     boolean differs = existing != null && !incoming.equals(existing);
+        //     if (differs) {
+        //         if (key.equals(MetricMetadata.UNIT.name().toLowerCase())) {
+        //             return new IncomingUnitException(locator, existing, incoming);
+        //         } else {
+        //             return new IncomingTypeException(locator, existing, incoming);
+        //         }
+        //     }
+        // } finally {
+        //     ctx.stop();
+        // }
 
         return null;
     }
