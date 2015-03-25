@@ -59,9 +59,9 @@ def grouper(iterable, n, fillvalue=None):
 
 
 class TenantBluefloodFinder(object):
-  #__fetch_multi__ = 'tenant_blueflood'
+  __fetch_multi__ = 'tenant_blueflood'
   def __init__(self, config=None):
-    print("gbj v6")
+    print("gbj v7")
     if os.path.isfile("/root/pdb-flag"):
       remote_pdb.RemotePdb('127.0.0.1', 4444).set_trace()
     authentication_module = None
@@ -105,7 +105,7 @@ class TenantBluefloodFinder(object):
         if metric_depth > query_depth:
           yield BranchNode('.'.join(parts[:query_depth]))
         else:
-          yield LeafNode(metric, TenantBluefloodReader(metric, self.tenant, self.bf_query_endpoint))
+          yield TenantBluefloodLeafNode(metric, TenantBluefloodReader(metric, self.tenant, self.bf_query_endpoint))
     except Exception as e:
      print "Exception in Blueflood find_nodes: " 
      print e
@@ -131,6 +131,7 @@ class TenantBluefloodFinder(object):
       return r.json()['metrics']
 
   def fetch_multi(self, nodes, start_time, end_time):
+    print("gbj fm on ")
     paths = [node.path for node in nodes]
     res = calc_res(start_time, end_time)
     step = secs_per_res[res]
@@ -147,6 +148,7 @@ class TenantBluefloodFinder(object):
                          [self.get_metric_list(self.bf_query_endpoint, 
                                                self.tenant, g, payload, headers) 
                           for g in groups])
+    client = Client(self.bf_query_endpoint, self.tenant)
     cache = {x['metric'] : client.process_path(x['data'], start_time, real_end_time, step)
              for x in responses}
     time_info = (start_time, real_end_time, step)
@@ -283,7 +285,7 @@ class Client(object):
       
     return ret_arr
 
-#class TenantBluefloodLeafNode(LeafNode):
-  #__fetch_multi__ = 'tenant_blueflood'
+class TenantBluefloodLeafNode(LeafNode):
+  __fetch_multi__ = 'tenant_blueflood'
 
 
