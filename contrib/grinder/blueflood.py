@@ -1,4 +1,8 @@
 import itertools, random
+try: 
+  from com.xhaus.jyson import JysonCodec as json
+except ImportError:
+  import json
 
 default_config = {'report_interval': (1000 * 6),
                   'tenant_ids': 23000,
@@ -61,3 +65,6 @@ def generate_metric(time, tenant_id, metric_id):
           'metricValue': random.randint(0, RAND_MAX),
           'ttlInSeconds': (2 * 24 * 60 * 60),
           'collectionTime': time}
+
+def generate_payload(time, batch):
+  return json.dumps(map(lambda x:generate_metric(time,*x), batch))
