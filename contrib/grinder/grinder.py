@@ -15,13 +15,8 @@ from net.grinder.plugin.http import HTTPRequest
 from HTTPClient import NVPair
 import blueflood
 import time
-
-
-#protectedResourceTest = Test(1, "Request resource")
-#authenticationTest = Test(2, "POST to j_security_check")
  
 request = HTTPRequest()
-#protectedResourceTest.record(request)
 batches = blueflood.init_process(grinder.getAgentNumber())
  
 class TestRunner:
@@ -35,15 +30,16 @@ class TestRunner:
     if self.current['position'] >= len(self.current['slice']):
       self.current['position'] = 0
       sleep_time = self.current['finish_time'] - time.time()
-      self.current['finish_time'] = += (blueflood.default_config['report_interval'] / 1000)
+      self.current['finish_time'] += (blueflood.default_config['report_interval'] / 1000)
       if sleep_time < 0:
         #return error
         grinder.info.logger("finish time error")
       else:
+        grinder.info.logger("pausing for %d" % sleep_time)
         time.sleep(sleep_time)
 
     payload = blueflood.generate_payload(time.time(), 
-                                         self.current['slice'][self.current['position'])
+                                         self.current['slice'][self.current['position']])
             
     grinder.logger.info(payload)
     self.current['position'] += 1

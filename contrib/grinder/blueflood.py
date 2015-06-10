@@ -5,9 +5,9 @@ except ImportError:
   import json
 
 default_config = {'report_interval': (1000 * 6),
-                  'tenant_ids': 23000,
-                  'metrics_per_tenant': 210,
-                  'batch_size': 1000,
+                  'tenant_ids': 4,
+                  'metrics_per_tenant': 10,
+                  'batch_size': 5,
                   'concurrency': 2,
                   'offset': 0,
                   'num_instances': 1,
@@ -20,7 +20,7 @@ default_config = {'report_interval': (1000 * 6),
 
 RAND_MAX =  982374239
 
-name_fmt = "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
+name_fmt = "t1.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
 
 def generate_metric_name(metric_id):
   return name_fmt % metric_id
