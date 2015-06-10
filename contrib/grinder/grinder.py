@@ -14,7 +14,7 @@ from net.grinder.script import Test
 from net.grinder.plugin.http import HTTPRequest
 from HTTPClient import NVPair
 import blueflood
-
+import time
 
 
 #protectedResourceTest = Test(1, "Request resource")
@@ -22,15 +22,32 @@ import blueflood
  
 request = HTTPRequest()
 #protectedResourceTest.record(request)
+batches = blueflood.init_process(grinder.getAgentNumber())
  
 class TestRunner:
-    def __call__(self):
-      c = blueflood.default_config
-      batches = blueflood.generate_metrics_tenants(c['batch_size'], c['tenant_ids'], c['metrics_per_tenant'], c['offset'], c['num_instances'])
-      payload = blueflood.generate_payload(1432551600000, batches[0])
+  def __init__(self):
+    self.current = blueflood.init_thread(grinder.getThreadNumber(), batches)
 
-      grinder.logger.info(payload)
-      result = request.POST("http://qe01.metrics-ingest.api.rackspacecloud.com/v2.0/939271/ingest/multi", payload)
+  def __call__(self):
+    if self.current['first']:
+      self.current['first'] = False
+      self.current['finish_time'] = time.time() + (blueflood.default_config['report_interval'] / 1000)
+    if self.current['position'] >= len(self.current['slice']):
+      self.current['position'] = 0
+      sleep_time = self.current['finish_time'] - time.time()
+      self.current['finish_time'] = += (blueflood.default_config['report_interval'] / 1000)
+      if sleep_time < 0:
+        #return error
+        grinder.info.logger("finish time error")
+      else:
+        time.sleep(sleep_time)
 
-      grinder.logger.info("gbjdone2")
-      grinder.logger.info(result.toString())
+    payload = blueflood.generate_payload(time.time(), 
+                                         self.current['slice'][self.current['position'])
+            
+    grinder.logger.info(payload)
+    self.current['position'] += 1
+    result = request.POST(blueflood.ingest_url(), payload)
+
+    grinder.logger.info("gbjdone2")
+    grinder.logger.info(result.toString())

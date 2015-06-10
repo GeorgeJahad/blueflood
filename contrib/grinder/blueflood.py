@@ -8,7 +8,7 @@ default_config = {'report_interval': (1000 * 6),
                   'tenant_ids': 23000,
                   'metrics_per_tenant': 210,
                   'batch_size': 1000,
-                  'concurrency': 25,
+                  'concurrency': 2,
                   'offset': 0,
                   'num_instances': 1,
                   'url': "http://qe01.metrics-ingest.api.rackspacecloud.com",
@@ -25,12 +25,12 @@ name_fmt = "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcd
 def generate_metric_name(metric_id):
   return name_fmt % metric_id
 
-units_map = {0: "minutes",
-             1: "hours",
-             2: "days",
-             3: "months",
-             4: "years",
-             5: "decades"}
+units_map = {0: 'minutes',
+             1: 'hours',
+             2: 'days',
+             3: 'months',
+             4: 'years',
+             5: 'decades'}
 
 def generate_unit(tenant_id):
   unit_number = tenant_id % 6
@@ -68,3 +68,19 @@ def generate_metric(time, tenant_id, metric_id):
 
 def generate_payload(time, batch):
   return json.dumps(map(lambda x:generate_metric(time,*x), batch))
+
+def init_process(current_agent):
+  return generate_metrics_tenants(default_config['batch_size'], default_config['tenant_ids'], 
+                                  default_config['metrics_per_tenant'], current_agent, 
+                                  default_config['num_instances'])
+
+def init_thread(current_thread, batches):
+  batches_per_thread = len(batches) / default_config['concurrency']
+  start = current_thread * batches_per_thread
+  end = (current_thread + 1) * batches_per_thread
+  return {'slice': batches[start:end],
+          'position': 0,
+          'first': True}
+
+def ingest_url():
+  return "%s/v2.0/tenantId/ingest/multi" % default_config['url']
