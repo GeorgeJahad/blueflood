@@ -3,12 +3,16 @@ try:
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
   import json
+import time
+import pprint
+
+pp = pprint.pprint
 
 default_config = {'report_interval': (1000 * 6),
                   'tenant_ids': 4,
                   'metrics_per_tenant': 10,
                   'batch_size': 5,
-                  'concurrency': 2,
+                  'concurrency': 1,
                   'offset': 0,
                   'num_instances': 1,
                   'url': "http://qe01.metrics-ingest.api.rackspacecloud.com",
@@ -67,7 +71,9 @@ def generate_metric(time, tenant_id, metric_id):
           'collectionTime': time}
 
 def generate_payload(time, batch):
-  return json.dumps(map(lambda x:generate_metric(time,*x), batch))
+  payload = map(lambda x:generate_metric(time,*x), batch)
+#gbj remove  pp(payload)
+  return json.dumps(payload)
 
 def init_process(current_agent):
   return generate_metrics_tenants(default_config['batch_size'], default_config['tenant_ids'], 
@@ -80,7 +86,7 @@ def init_thread(current_thread, batches):
   end = (current_thread + 1) * batches_per_thread
   return {'slice': batches[start:end],
           'position': 0,
-          'first': True}
+          'finish_time': int(time.time()) + (default_config['report_interval'] / 1000)}
 
 def ingest_url():
   return "%s/v2.0/tenantId/ingest/multi" % default_config['url']

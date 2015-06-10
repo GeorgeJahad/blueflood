@@ -24,24 +24,19 @@ class TestRunner:
     self.current = blueflood.init_thread(grinder.getThreadNumber(), batches)
 
   def __call__(self):
-    if self.current['first']:
-      self.current['first'] = False
-      self.current['finish_time'] = time.time() + (blueflood.default_config['report_interval'] / 1000)
     if self.current['position'] >= len(self.current['slice']):
       self.current['position'] = 0
-      sleep_time = self.current['finish_time'] - time.time()
+      sleep_time = self.current['finish_time'] - int(time.time())
       self.current['finish_time'] += (blueflood.default_config['report_interval'] / 1000)
       if sleep_time < 0:
         #return error
-        grinder.info.logger("finish time error")
+        grinder.logger.info("finish time error")
       else:
-        grinder.info.logger("pausing for %d" % sleep_time)
+        grinder.logger.info("pausing for %d" % sleep_time)
         time.sleep(sleep_time)
-
-    payload = blueflood.generate_payload(time.time(), 
+    payload = blueflood.generate_payload(int(time.time()),
                                          self.current['slice'][self.current['position']])
             
-    grinder.logger.info(payload)
     self.current['position'] += 1
     result = request.POST(blueflood.ingest_url(), payload)
 
