@@ -16,29 +16,16 @@ from HTTPClient import NVPair
 import blueflood
 import time
  
+test1 = Test(1, "Ingest resource")
 request = HTTPRequest()
 batches = blueflood.init_process(grinder.getAgentNumber())
+test1.record(request)
  
 class TestRunner:
   def __init__(self):
     self.current = blueflood.init_thread(grinder.getThreadNumber(), batches)
+    runs = grinder.getProperties().getInt("grinder.runs",-1)
 
   def __call__(self):
-    if self.current['position'] >= len(self.current['slice']):
-      self.current['position'] = 0
-      sleep_time = self.current['finish_time'] - int(time.time())
-      self.current['finish_time'] += (blueflood.default_config['report_interval'] / 1000)
-      if sleep_time < 0:
-        #return error
-        grinder.logger.info("finish time error")
-      else:
-        grinder.logger.info("pausing for %d" % sleep_time)
-        time.sleep(sleep_time)
-    payload = blueflood.generate_payload(int(time.time()),
-                                         self.current['slice'][self.current['position']])
-            
-    self.current['position'] += 1
-    result = request.POST(blueflood.ingest_url(), payload)
+    result = blueflood.make_request_for_this_thread(self.current, grinder.logger.info, request)
 
-    grinder.logger.info("gbjdone2")
-    grinder.logger.info(result.toString())

@@ -24,7 +24,7 @@ default_config = {'report_interval': (1000 * 6),
 
 RAND_MAX =  982374239
 
-name_fmt = "t1.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
+name_fmt = "t2.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
 
 def generate_metric_name(metric_id):
   return name_fmt % metric_id
@@ -61,7 +61,6 @@ def generate_metrics_tenants(batch_size, tenant_ids, metrics_per_tenant, offset,
   random.shuffle(metrics)
   return create_batches(metrics, batch_size)
 
-
 def generate_metric(time, tenant_id, metric_id):
   return {'tenantId': str(tenant_id),
           'metricName': generate_metric_name(metric_id),
@@ -90,3 +89,21 @@ def init_thread(current_thread, batches):
 
 def ingest_url():
   return "%s/v2.0/tenantId/ingest/multi" % default_config['url']
+
+
+def make_request_for_this_thread(current, logger, request_handler):
+  if current['position'] >= len(current['slice']):
+    current['position'] = 0
+    sleep_time = current['finish_time'] - int(time.time())
+    current['finish_time'] += (default_config['report_interval'] / 1000)
+    if sleep_time < 0:
+      #return error
+      logger("finish time error")
+    else:
+      logger("pausing for %d" % sleep_time)
+      time.sleep(sleep_time)
+  payload = generate_payload(int(time.time()),
+                                         current['slice'][current['position']])
+  current['position'] += 1
+  result = request_handler.POST(ingest_url(), payload)
+
