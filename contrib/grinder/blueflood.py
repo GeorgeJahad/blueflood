@@ -8,7 +8,7 @@ import pprint
 
 pp = pprint.pprint
 
-default_config = {'report_interval': (1000 * 6),
+qe01_config = {'report_interval': (1000 * 6),
                   'tenant_ids': 4,
                   'metrics_per_tenant': 10,
                   'batch_size': 5,
@@ -22,9 +22,25 @@ default_config = {'report_interval': (1000 * 6),
                   'multiplot_per_minute': 10,
                   'singleplot_per-minute': 10}
 
+stage_config = {'report_interval': (1000 * 60),
+                  'tenant_ids': 23000,
+                  'metrics_per_tenant': 210,
+                  'batch_size': 1500,
+                  'concurrency': 25,
+                  'offset': 0,
+                  'num_instances': 1,
+                  'url':  "http://staging.metrics-ingest.api.rackspacecloud.com",
+                  'query_url':  "http://staging.metrics.api.rackspacecloud.com",
+                  'query_concurrency': 50,
+                  'search_queries_per_minute': 100,
+                  'multiplot_per_minute': 20,
+                  'singleplot_per-minute': 300}
+
+default_config = stage_config
+
 RAND_MAX =  982374239
 
-name_fmt = "t2.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
+name_fmt = "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
 
 def generate_metric_name(metric_id):
   return name_fmt % metric_id
