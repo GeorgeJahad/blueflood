@@ -62,15 +62,23 @@ def create_batches(metrics, batch_size):
     batches.append(metrics[i:i+batch_size])
   return batches
 
+def generate_job_range(total_jobs, total_servers, server_num):
+  jobs_per_server = total_jobs/total_servers
+  remainder = total_jobs % total_servers
+  start_job = jobs_per_server * server_num
+  start_job += min(remainder, server_num)
+  end_job = start_job + jobs_per_server
+  if server_num < remainder:
+    end_job += 1
+  return (start_job, end_job)
+
 def generate_metrics_tenants(batch_size, tenant_ids, metrics_per_tenant, agent_number, num_nodes):
   def generate_metrics_for_tenant(tenant_id):
     l = [];
     for x in range(metrics_per_tenant):
       l.append([tenant_id, x])
     return l
-  tenant_shard = tenant_ids / num_nodes
-  max_tenant_in_shard = min(tenant_ids,(agent_number + 1) * tenant_shard)
-  tenants_in_shard = range((agent_number * tenant_shard), max_tenant_in_shard)
+  tenants_in_shard = range(*generate_job_range(tenant_ids, num_nodes, agent_number))
   metrics = []
   for y in map(generate_metrics_for_tenant, tenants_in_shard):
     metrics += y
@@ -87,7 +95,6 @@ def generate_metric(time, tenant_id, metric_id):
 
 def generate_payload(time, batch):
   payload = map(lambda x:generate_metric(time,*x), batch)
-#gbj remove  pp(payload)
   return json.dumps(payload)
 
 def init_process(agent_number):
@@ -96,9 +103,7 @@ def init_process(agent_number):
                                   default_config['num_nodes'])
 
 def init_thread(current_thread, batches):
-  batches_per_thread = len(batches) / default_config['concurrency']
-  start = current_thread * batches_per_thread
-  end = (current_thread + 1) * batches_per_thread
+  start, end = generate_job_range(len(batches), default_config['concurrency'], current_thread)
   return {'slice': batches[start:end],
           'position': 0,
           'finish_time': int(time.time()) + (default_config['report_interval'] / 1000)}
