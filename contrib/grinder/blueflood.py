@@ -127,4 +127,4 @@ def make_request_for_this_thread(current, logger, request_handler):
                                          current['slice'][current['position']])
   current['position'] += 1
   result = request_handler.POST(ingest_url(), payload)
-
+  return result
