@@ -14,7 +14,7 @@ qe01_config = {
   'tenant_ids': 4,
   'metrics_per_tenant': 10,
   'batch_size': 5,
-  'concurrency': 1,
+  'ingest_concurrency': 1,
   'num_nodes': 1,
   'url': "http://qe01.metrics-ingest.api.rackspacecloud.com",
   'query_url': "http://qe01.metrics.api.rackspacecloud.com",
@@ -29,7 +29,7 @@ stage_config = {
   'tenant_ids': 23000,
   'metrics_per_tenant': 210,
   'batch_size': 1500,
-  'concurrency': 25,
+  'ingest_concurrency': 25,
   'num_nodes': 1,
   'url':  "http://staging.metrics-ingest.api.rackspacecloud.com",
   'query_url':  "http://staging.metrics.api.rackspacecloud.com",
@@ -42,6 +42,57 @@ default_config = stage_config
 
 RAND_MAX =  982374239
 
+class ThreadType:
+  types = []
+  
+  @classmethod
+  def add_type(cls, type):
+    cls.types.append(type)
+
+  @classmethod
+  def prn_types(cls):
+    print cls.types
+
+  @classmethod
+  def create_all_batches(cls, agent_number):
+    for x in cls.types:
+      x.create_batches(agent_number)
+
+  @classmethod
+  def setup_thread(cls, thread_num, grinder):
+    pass
+
+  def __init__(self, name):
+    self.name = name
+    
+
+  def create_batches(self, agent_number):
+    pass
+
+  def make_request(self, logger, request):
+    pass
+
+
+class IngestThread(ThreadType):
+  batches = []
+  @classmethod
+  def create_batches(cls.agent_number):
+    cls.batches =  generate_metrics_tenants(default_config['batch_size'], 
+                                            default_config['tenant_ids'], 
+                                            default_config['metrics_per_tenant'], agent_number, 
+                                            default_config['num_nodes'])
+
+  def init_thread(self, thread_num):
+    pass
+
+  def make_request(self, logger, request):
+    pass
+  
+ingest_thread = IngestThread("ingest")
+
+ThreadType.add_type(IngestThread)
+
+  
 def generate_metric_name(metric_id):
   return default_config['name_fmt'] % metric_id
 
@@ -97,13 +148,13 @@ def generate_payload(time, batch):
   payload = map(lambda x:generate_metric(time,*x), batch)
   return json.dumps(payload)
 
-def init_process(agent_number):
+def ingest_create_batches(agent_number):
   return generate_metrics_tenants(default_config['batch_size'], default_config['tenant_ids'], 
                                   default_config['metrics_per_tenant'], agent_number, 
                                   default_config['num_nodes'])
 
 def init_thread(current_thread, batches):
-  start, end = generate_job_range(len(batches), default_config['concurrency'], current_thread)
+  start, end = generate_job_range(len(batches), default_config['ingest_concurrency'], current_thread)
   return {'slice': batches[start:end],
           'position': 0,
           'finish_time': int(time.time()) + (default_config['report_interval'] / 1000)}

@@ -18,14 +18,14 @@ import time
  
 test1 = Test(1, "Ingest resource")
 request = HTTPRequest()
-batches = blueflood.init_process(grinder.getAgentNumber())
+blueflood.ThreadType.create_all_batches(grinder.getAgentNumber())
 test1.record(request)
  
 class TestRunner:
   def __init__(self):
-    self.current = blueflood.init_thread(grinder.getThreadNumber(), batches)
+    self.thread = blueflood.ThreadType.setup_thread(grinder.getThreadNumber(), grinder)
     runs = grinder.getProperties().getInt("grinder.runs",-1)
 
   def __call__(self):
-    result = blueflood.make_request_for_this_thread(self.current, grinder.logger.info, request)
+    result = self.thread.make_request(grinder.logger.info, request)
 
