@@ -15,41 +15,9 @@ class IngestThread(ThreadType):
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'])
 
+  @classmethod
   def num_threads(cls):
     return default_config['ingest_concurrency']
-
-  def __init__(self, thread_num):
-    start, end = self.generate_job_range(len(self.batches), 
-                                    self.num_threads(), thread_num)
-    self.slice = self.batches[start:end]
-    self.position = 0
-    self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
-
-
-  def generate_metric_name(self, metric_id):
-    return default_config['name_fmt'] % metric_id
-
-  def generate_unit(self, tenant_id):
-    unit_number = tenant_id % 6
-    return units_map[unit_number]
-
-  @classmethod
-  def divide_batches(cls, metrics, batch_size):
-    b = []
-    for i in range(0, len(metrics), batch_size):
-      b.append(metrics[i:i+batch_size])
-    return b
-
-  @classmethod
-  def generate_job_range(cls, total_jobs, total_servers, server_num):
-    jobs_per_server = total_jobs/total_servers
-    remainder = total_jobs % total_servers
-    start_job = jobs_per_server * server_num
-    start_job += min(remainder, server_num)
-    end_job = start_job + jobs_per_server
-    if server_num < remainder:
-      end_job += 1
-    return (start_job, end_job)
 
   @classmethod
   def generate_metrics_tenants(cls, batch_size, tenant_ids, metrics_per_tenant, agent_number, num_nodes):
