@@ -98,31 +98,32 @@ class BluefloodTests(unittest.TestCase):
                       u'unit': u'days'}]
     self.assertSequenceEqual(payload, valid_payload)
 
-  # def test_make_request(self):
-  #   global sleep_time
-  #   req = TestReq()
-  #   current = {'slice': [[[2, 0], [2, 1]]],
-  #         'position': 0,
-  #         'finish_time': 10}
-  #   url, payload = blueflood.make_request_for_this_thread(current, pp, req)
-  #   self.assertEqual(url, 
-  #                    'http://staging.metrics-ingest.api.rackspacecloud.com/v2.0/tenantId/ingest/multi')
-  #   self.assertSequenceEqual(payload,
-  #                            '[{"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0"}, {"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1"}]')
-  #   self.assertEqual(current['position'], 1)
-  #   self.assertEqual(current['finish_time'], 10)
-  #   current['position'] = 2
-  #   blueflood.make_request_for_this_thread(current, pp, req)
-  #   self.assertEqual(sleep_time, 9)
-  #   self.assertEqual(current['position'], 1)
-  #   self.assertEqual(current['finish_time'], 16)
+  def test_make_request(self):
+    global sleep_time
+    req = TestReq()
+    thread = blueflood.IngestThread(0)
+    thread.slice = [[[2, 0], [2, 1]]]
+    thread.position = 0
+    thread.finish_time = 10
+    url, payload = thread.make_request(pp, req)
+    self.assertEqual(url, 
+                     'http://qe01.metrics-ingest.api.rackspacecloud.com/v2.0/tenantId/ingest/multi')
+    self.assertSequenceEqual(payload,
+                             '[{"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0"}, {"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1"}]')
+    self.assertEqual(thread.position, 1)
+    self.assertEqual(thread.finish_time, 10)
+    thread.position = 2
+    thread.make_request(pp, req)
+    self.assertEqual(sleep_time, 9)
+    self.assertEqual(thread.position, 1)
+    self.assertEqual(thread.finish_time, 16)
 
 
-  # def tearDown(self):
-  #   random.shuffle = self.real_shuffle
-  #   random.randint = self.real_randint
-  #   time.time = self.real_time
-  #   time.sleep = self.real_sleep
+  def tearDown(self):
+    random.shuffle = self.real_shuffle
+    random.randint = self.real_randint
+    time.time = self.real_time
+    time.sleep = self.real_sleep
 
 if __name__ == '__main__':
   unittest.main()
