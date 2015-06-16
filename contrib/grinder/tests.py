@@ -29,7 +29,7 @@ class BluefloodTests(unittest.TestCase):
     time.time = lambda:1
     time.sleep = mock_sleep
     test_config = {'report_interval': (1000 * 6),
-                   'tenant_ids': 3,
+                   'num_tenants': 3,
                    'metrics_per_tenant': 7,
                    'batch_size': 3,
                    'ingest_concurrency': 2,

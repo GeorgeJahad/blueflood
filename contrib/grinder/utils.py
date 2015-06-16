@@ -7,7 +7,7 @@ pp = pprint.pprint
 qe01_config = {
   'name_fmt': "t4.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
   'report_interval': (1000 * 6),
-  'tenant_ids': 4,
+  'num_tenants': 4,
   'metrics_per_tenant': 10,
   'batch_size': 5,
   'ingest_concurrency': 1,
@@ -15,14 +15,14 @@ qe01_config = {
   'url': "http://qe01.metrics-ingest.api.rackspacecloud.com",
   'query_url': "http://qe01.metrics.api.rackspacecloud.com",
   'query_concurrency': 100,
-  'search_queries_per_minute': 10,
-  'multiplot_per_minute': 10,
-  'singleplot_per-minute': 10}
+  'search_queries_per_interval': 10,
+  'multiplot_per_interval': 10,
+  'singleplot_per_interval': 10}
 
 stage_config = {
   'name_fmt': "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
   'report_interval': (1000 * 60),
-  'tenant_ids': 23000,
+  'num_tenants': 23000,
   'metrics_per_tenant': 210,
   'batch_size': 1500,
   'ingest_concurrency': 25,
@@ -30,9 +30,9 @@ stage_config = {
   'url':  "http://staging.metrics-ingest.api.rackspacecloud.com",
   'query_url':  "http://staging.metrics.api.rackspacecloud.com",
   'query_concurrency': 50,
-  'search_queries_per_minute': 100,
-  'multiplot_per_minute': 20,
-  'singleplot_per-minute': 300}
+  'search_queries_per_interval': 100,
+  'multiplot_per_interval': 20,
+  'singleplot_per_interval': 300}
 
 units_map = {0: 'minutes',
              1: 'hours',
@@ -48,6 +48,7 @@ RAND_MAX =  982374239
 
 class ThreadManager(object):
   types = []
+  total_threads = 0
 
   @classmethod
   def add_type(cls, type):
@@ -59,6 +60,7 @@ class ThreadManager(object):
   def create_all_metrics(self, agent_number):
     for x in self.types:
       x.create_metrics(agent_number)
+      self.total_threads += x.num_threads()
 
   def setup_thread(self, thread_num, grinder):
     thread_type = None
@@ -90,9 +92,6 @@ class AbstractThread(object):
     raise("Can't create abstract thread")
 
   def __init__(self, thread_num):
-    start, end = self.generate_job_range(len(self.metrics), 
-                                    self.num_threads(), thread_num)
-    self.slice = self.metrics[start:end]
     self.position = 0
     self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
 
@@ -108,9 +107,9 @@ class AbstractThread(object):
     return (start_job, end_job)
 
   @classmethod
-  def generate_metrics_tenants(cls, tenant_ids, metrics_per_tenant, 
+  def generate_metrics_tenants(cls, num_tenants, metrics_per_tenant, 
                                agent_number, num_nodes, gen_fn):
-    tenants_in_shard = range(*cls.generate_job_range(tenant_ids, num_nodes, agent_number))
+    tenants_in_shard = range(*cls.generate_job_range(num_tenants, num_nodes, agent_number))
     metrics = []
     for y in map(lambda x: gen_fn(x, metrics_per_tenant), tenants_in_shard):
       metrics += y
@@ -124,8 +123,8 @@ class AbstractThread(object):
     unit_number = tenant_id % 6
     return units_map[unit_number]
 
-  def check_position(self, logger):
-    if self.position >= len(self.slice):
+  def check_position(self, logger, max_position):
+    if self.position >= max_position:
       self.position = 0
       sleep_time = self.finish_time - int(time.time())
       self.finish_time += (default_config['report_interval'] / 1000)

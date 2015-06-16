@@ -10,7 +10,7 @@ class IngestThread(AbstractThread):
   metrics = []
   @classmethod
   def create_metrics(cls, agent_number):
-    metrics =  cls.generate_metrics_tenants(default_config['tenant_ids'], 
+    metrics =  cls.generate_metrics_tenants(default_config['num_tenants'], 
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'], 
                                             cls.generate_metrics_for_tenant)
@@ -35,6 +35,11 @@ class IngestThread(AbstractThread):
       b.append(metrics[i:i+batch_size])
     return b
 
+  def __init__(self, thread_num):
+    start, end = self.generate_job_range(len(self.metrics), 
+                                    self.num_threads(), thread_num)
+    self.slice = self.metrics[start:end]
+
   def generate_metric(self, time, tenant_id, metric_id):
     return {'tenantId': str(tenant_id),
             'metricName': self.generate_metric_name(metric_id),
@@ -52,7 +57,7 @@ class IngestThread(AbstractThread):
 
 
   def make_request(self, logger, request_handler):
-    self.check_position(logger)
+    self.check_position(logger, len(self.slice))
     payload = self.generate_payload(int(time.time()),
                                            self.slice[self.position])
     self.position += 1
