@@ -1,5 +1,6 @@
 import pprint
 import time
+import random
 
 pp = pprint.pprint
 
@@ -113,6 +114,16 @@ class ThreadType(object):
       end_job += 1
     return (start_job, end_job)
 
+  @classmethod
+  def generate_metrics_tenants(cls, batch_size, tenant_ids, metrics_per_tenant, 
+                               agent_number, num_nodes, gen_fn):
+    tenants_in_shard = range(*cls.generate_job_range(tenant_ids, num_nodes, agent_number))
+    metrics = []
+    for y in map(lambda x: gen_fn(x, metrics_per_tenant), tenants_in_shard):
+      metrics += y
+    random.shuffle(metrics)
+    return cls.divide_batches(metrics, batch_size)
+
   def generate_metric_name(self, metric_id):
     return default_config['name_fmt'] % metric_id
 
@@ -120,3 +131,14 @@ class ThreadType(object):
     unit_number = tenant_id % 6
     return units_map[unit_number]
 
+  def check_position(self, logger):
+    if self.position >= len(self.slice):
+      self.position = 0
+      sleep_time = self.finish_time - int(time.time())
+      self.finish_time += (default_config['report_interval'] / 1000)
+      if sleep_time < 0:
+        #return error
+        logger("finish time error")
+      else:
+        logger("pausing for %d" % sleep_time)
+        time.sleep(sleep_time)

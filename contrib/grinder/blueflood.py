@@ -11,27 +11,21 @@ class IngestThread(ThreadType):
   @classmethod
   def create_batches(cls, agent_number):
     cls.batches =  cls.generate_metrics_tenants(default_config['batch_size'], 
-                                            default_config['tenant_ids'], 
-                                            default_config['metrics_per_tenant'], agent_number, 
-                                            default_config['num_nodes'])
+                                                default_config['tenant_ids'], 
+                                                default_config['metrics_per_tenant'], agent_number, 
+                                                default_config['num_nodes'], 
+                                                cls.generate_metrics_for_tenant)
 
   @classmethod
   def num_threads(cls):
     return default_config['ingest_concurrency']
 
   @classmethod
-  def generate_metrics_tenants(cls, batch_size, tenant_ids, metrics_per_tenant, agent_number, num_nodes):
-    def generate_metrics_for_tenant(tenant_id):
-      l = [];
-      for x in range(metrics_per_tenant):
-        l.append([tenant_id, x])
-      return l
-    tenants_in_shard = range(*cls.generate_job_range(tenant_ids, num_nodes, agent_number))
-    metrics = []
-    for y in map(generate_metrics_for_tenant, tenants_in_shard):
-      metrics += y
-    random.shuffle(metrics)
-    return cls.divide_batches(metrics, batch_size)
+  def generate_metrics_for_tenant(cls, tenant_id, metrics_per_tenant):
+    l = [];
+    for x in range(metrics_per_tenant):
+      l.append([tenant_id, x])
+    return l
 
   def generate_metric(self, time, tenant_id, metric_id):
     return {'tenantId': str(tenant_id),
@@ -50,16 +44,7 @@ class IngestThread(ThreadType):
 
 
   def make_request(self, logger, request_handler):
-    if self.position >= len(self.slice):
-      self.position = 0
-      sleep_time = self.finish_time - int(time.time())
-      self.finish_time += (default_config['report_interval'] / 1000)
-      if sleep_time < 0:
-        #return error
-        logger("finish time error")
-      else:
-        logger("pausing for %d" % sleep_time)
-        time.sleep(sleep_time)
+    self.check_position(logger)
     payload = self.generate_payload(int(time.time()),
                                            self.slice[self.position])
     self.position += 1
