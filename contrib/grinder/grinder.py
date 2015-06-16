@@ -15,7 +15,9 @@ from net.grinder.plugin.http import HTTPRequest
 from HTTPClient import NVPair
 import blueflood
 import time
- 
+
+#The code inside the class is gets executed by each worker thread
+#Outside the class is executed before any of the workers begin
 test1 = Test(1, "Ingest resource")
 request = HTTPRequest()
 thread_manager = blueflood.ThreadManager()
