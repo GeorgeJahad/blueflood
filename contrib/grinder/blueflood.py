@@ -42,31 +42,43 @@ default_config = stage_config
 
 RAND_MAX =  982374239
 
-class ThreadType:
+class ThreadManager(object):
   types = []
-  
+
   @classmethod
   def add_type(cls, type):
     cls.types.append(type)
 
-  @classmethod
-  def prn_types(cls):
-    print cls.types
+  def prn_types(self):
+    print self.types
 
-  @classmethod
-  def create_all_batches(cls, agent_number):
-    for x in cls.types:
+  def create_all_batches(self, agent_number):
+    for x in self.types:
       x.create_batches(agent_number)
 
+  def setup_thread(self, thread_num, grinder):
+    thread_type = None
+    server_num = thread_num
+
+    for x in self.types:
+      if server_num < x.num_threads():
+        thread_type = x
+        break
+      else:
+        server_num -= x.num_threads()
+
+    if thread_type == None:
+      raise Exception("Invalid Thread Type")
+
+    return thread_type(thread_num)
+
+
+class ThreadType(object):
   @classmethod
-  def setup_thread(cls, thread_num, grinder):
+  def create_batches(cls, agent_number):
     pass
 
-  def __init__(self, name):
-    self.name = name
-    
-
-  def create_batches(self, agent_number):
+  def num_threads(self):
     pass
 
   def make_request(self, logger, request):
@@ -75,24 +87,24 @@ class ThreadType:
 
 class IngestThread(ThreadType):
   batches = []
+
   @classmethod
-  def create_batches(cls.agent_number):
+  def create_batches(cls, agent_number):
     cls.batches =  generate_metrics_tenants(default_config['batch_size'], 
                                             default_config['tenant_ids'], 
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'])
 
-  def init_thread(self, thread_num):
-    pass
+  def __init__(self, thread_num):
+    start, end = generate_job_range(len(self.batches), 
+                                    default_config['ingest_concurrency'], thread_num)
+    self.slice = batches[start:end]
+    self.position = 0
+    self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
 
-  def make_request(self, logger, request):
-    pass
-  
-ingest_thread = IngestThread("ingest")
+  def num_threads(self):
+    return default_config['ingest_concurrency']
 
-ThreadType.add_type(IngestThread)
-
-  
 def generate_metric_name(metric_id):
   return default_config['name_fmt'] % metric_id
 
@@ -107,7 +119,7 @@ def generate_unit(tenant_id):
   unit_number = tenant_id % 6
   return units_map[unit_number]
 
-def create_batches(metrics, batch_size):
+def divide_batches(metrics, batch_size):
   batches = []
   for i in range(0, len(metrics), batch_size):
     batches.append(metrics[i:i+batch_size])
@@ -134,7 +146,7 @@ def generate_metrics_tenants(batch_size, tenant_ids, metrics_per_tenant, agent_n
   for y in map(generate_metrics_for_tenant, tenants_in_shard):
     metrics += y
   random.shuffle(metrics)
-  return create_batches(metrics, batch_size)
+  return divide_batches(metrics, batch_size)
 
 def generate_metric(time, tenant_id, metric_id):
   return {'tenantId': str(tenant_id),
@@ -148,26 +160,15 @@ def generate_payload(time, batch):
   payload = map(lambda x:generate_metric(time,*x), batch)
   return json.dumps(payload)
 
-def ingest_create_batches(agent_number):
-  return generate_metrics_tenants(default_config['batch_size'], default_config['tenant_ids'], 
-                                  default_config['metrics_per_tenant'], agent_number, 
-                                  default_config['num_nodes'])
-
-def init_thread(current_thread, batches):
-  start, end = generate_job_range(len(batches), default_config['ingest_concurrency'], current_thread)
-  return {'slice': batches[start:end],
-          'position': 0,
-          'finish_time': int(time.time()) + (default_config['report_interval'] / 1000)}
-
 def ingest_url():
   return "%s/v2.0/tenantId/ingest/multi" % default_config['url']
 
 
-def make_request_for_this_thread(current, logger, request_handler):
-  if current['position'] >= len(current['slice']):
-    current['position'] = 0
-    sleep_time = current['finish_time'] - int(time.time())
-    current['finish_time'] += (default_config['report_interval'] / 1000)
+def make_request(self, logger, request_handler):
+  if self.position >= len(self.slice):
+    self.position = 0
+    sleep_time = self.finish_time - int(time.time())
+    self.finish_time += (default_config['report_interval'] / 1000)
     if sleep_time < 0:
       #return error
       logger("finish time error")
@@ -175,7 +176,11 @@ def make_request_for_this_thread(current, logger, request_handler):
       logger("pausing for %d" % sleep_time)
       time.sleep(sleep_time)
   payload = generate_payload(int(time.time()),
-                                         current['slice'][current['position']])
-  current['position'] += 1
+                                         self.slice[self.position])
+  self.position += 1
   result = request_handler.POST(ingest_url(), payload)
   return result
+
+ThreadManager.add_type(IngestThread)
+
+  
