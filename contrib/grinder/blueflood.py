@@ -52,10 +52,6 @@ class ThreadManager(object):
   def prn_types(self):
     print self.types
 
-  @staticmethod
-  def teststat():
-    print("g1")
-  
   def create_all_batches(self, agent_number):
     for x in self.types:
       x.create_batches(agent_number)
@@ -100,7 +96,7 @@ class IngestThread(ThreadType):
 
   @classmethod
   def create_batches(cls, agent_number):
-    cls.batches =  generate_metrics_tenants(default_config['batch_size'], 
+    cls.batches =  cls.generate_metrics_tenants(default_config['batch_size'], 
                                             default_config['tenant_ids'], 
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'])
@@ -122,15 +118,15 @@ class IngestThread(ThreadType):
     unit_number = tenant_id % 6
     return units_map[unit_number]
 
-  @staticmethod
-  def divide_batches(metrics, batch_size):
+  @classmethod
+  def divide_batches(cls, metrics, batch_size):
     b = []
     for i in range(0, len(metrics), batch_size):
       b.append(metrics[i:i+batch_size])
     return b
 
-  @staticmethod
-  def generate_job_range(total_jobs, total_servers, server_num):
+  @classmethod
+  def generate_job_range(cls, total_jobs, total_servers, server_num):
     jobs_per_server = total_jobs/total_servers
     remainder = total_jobs % total_servers
     start_job = jobs_per_server * server_num
@@ -140,19 +136,19 @@ class IngestThread(ThreadType):
       end_job += 1
     return (start_job, end_job)
 
-  @staticmethod
-  def generate_metrics_tenants(batch_size, tenant_ids, metrics_per_tenant, agent_number, num_nodes):
+  @classmethod
+  def generate_metrics_tenants(cls, batch_size, tenant_ids, metrics_per_tenant, agent_number, num_nodes):
     def generate_metrics_for_tenant(tenant_id):
       l = [];
       for x in range(metrics_per_tenant):
         l.append([tenant_id, x])
       return l
-    tenants_in_shard = range(*self.generate_job_range(tenant_ids, num_nodes, agent_number))
+    tenants_in_shard = range(*cls.generate_job_range(tenant_ids, num_nodes, agent_number))
     metrics = []
     for y in map(generate_metrics_for_tenant, tenants_in_shard):
       metrics += y
     random.shuffle(metrics)
-    return divide_batches(metrics, batch_size)
+    return cls.divide_batches(metrics, batch_size)
 
   def generate_metric(self, time, tenant_id, metric_id):
     return {'tenantId': str(tenant_id),
