@@ -116,7 +116,7 @@ class IngestThread(ThreadType):
 
   def generate_unit(self, tenant_id):
     unit_number = tenant_id % 6
-    return units_map[unit_number]
+    return self.units_map[unit_number]
 
   @classmethod
   def divide_batches(cls, metrics, batch_size):

@@ -22,26 +22,24 @@ class BluefloodTests(unittest.TestCase):
     self.real_randint = random.randint
     self.real_time = time.time
     self.real_sleep = time.sleep
+    self.tm = blueflood.ThreadManager()
     
     random.shuffle = lambda x: None
     random.randint = lambda x,y: 0
     time.time = lambda:1
     time.sleep = mock_sleep
-
-
-    
-
-  def test_init_process(self):
     test_config = {'report_interval': (1000 * 6),
                    'tenant_ids': 3,
                    'metrics_per_tenant': 7,
                    'batch_size': 3,
-                   'concurrency': 2,
+                   'ingest_concurrency': 2,
+                   'name_fmt': "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
                    'num_nodes': 2}
 
     blueflood.default_config.update(test_config)
-    tm = blueflood.ThreadManager()
-    tm.create_all_batches(0)
+
+  def test_init_process(self):
+    self.tm.create_all_batches(0)
     self.assertSequenceEqual(blueflood.IngestThread.batches,
                              [[[0, 0], [0, 1], [0, 2]],
                               [[0, 3], [0, 4], [0, 5]],
@@ -50,53 +48,55 @@ class BluefloodTests(unittest.TestCase):
                               [[1, 5], [1, 6]]])
 
     
-  #   current = blueflood.init_thread(0, batches)
-  #   self.assertSequenceEqual(current['slice'],
-  #                            [[[0, 0], [0, 1], [0, 2]],
-  #                             [[0, 3], [0, 4], [0, 5]],
-  #                             [[0, 6], [1, 0], [1, 1]]])
-  #   current = blueflood.init_thread(1, batches)
-  #   self.assertSequenceEqual(current['slice'],
-  #                            [[[1, 2], [1, 3], [1, 4]], 
-  #                             [[1, 5], [1, 6]]])
+    thread = blueflood.IngestThread(0)
+    self.assertSequenceEqual(thread.slice,
+                             [[[0, 0], [0, 1], [0, 2]],
+                              [[0, 3], [0, 4], [0, 5]],
+                              [[0, 6], [1, 0], [1, 1]]])
+    thread = blueflood.IngestThread(1)
+    self.assertSequenceEqual(thread.slice,
+                             [[[1, 2], [1, 3], [1, 4]], 
+                              [[1, 5], [1, 6]]])
 
-  #   batches = blueflood.init_process(1)
-  #   self.assertSequenceEqual(batches,
-  #                            [[[2, 0], [2, 1], [2, 2]], 
-  #                             [[2, 3], [2, 4], [2, 5]], 
-  #                             [[2, 6]]])
+    self.tm.create_all_batches(1)
+    self.assertSequenceEqual(blueflood.IngestThread.batches,
+                             [[[2, 0], [2, 1], [2, 2]], 
+                              [[2, 3], [2, 4], [2, 5]], 
+                              [[2, 6]]])
 
     
-  #   current = blueflood.init_thread(0, batches)
-  #   self.assertSequenceEqual(current['slice'],
-  #                            [[[2, 0], [2, 1], [2, 2]], 
-  #                             [[2, 3], [2, 4], [2, 5]]])
-  #   current = blueflood.init_thread(1, batches)
-  #   self.assertSequenceEqual(current['slice'],
-  #                            [[[2, 6]]])
+    thread = blueflood.IngestThread(0)
+    self.assertSequenceEqual(thread.slice,
+                             [[[2, 0], [2, 1], [2, 2]], 
+                              [[2, 3], [2, 4], [2, 5]]])
+    thread = blueflood.IngestThread(1)
+    self.assertSequenceEqual(thread.slice,
+                             [[[2, 6]]])
 
 
-  # def test_generate_payload(self):
-  #   payload = json.loads(blueflood.generate_payload(0, [[2, 3], [2, 4], [2, 5]]))
-  #   valid_payload = [{u'collectionTime': 0,
-  #                     u'metricName': u'int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.3',
-  #                     u'metricValue': 0,
-  #                     u'tenantId': u'2',
-  #                     u'ttlInSeconds': 172800,
-  #                     u'unit': u'days'},
-  #                    {u'collectionTime': 0,
-  #                     u'metricName': u'int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.4',
-  #                     u'metricValue': 0,
-  #                     u'tenantId': u'2',
-  #                     u'ttlInSeconds': 172800,
-  #                     u'unit': u'days'},
-  #                    {u'collectionTime': 0,
-  #                     u'metricName': u'int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.5',
-  #                     u'metricValue': 0,
-  #                     u'tenantId': u'2',
-  #                     u'ttlInSeconds': 172800,
-  #                     u'unit': u'days'}]
-  #   self.assertSequenceEqual(payload, valid_payload)
+  def test_generate_payload(self):
+    self.tm.create_all_batches(1)
+    thread = blueflood.IngestThread(0)
+    payload = json.loads(thread.generate_payload(0, [[2, 3], [2, 4], [2, 5]]))
+    valid_payload = [{u'collectionTime': 0,
+                      u'metricName': u'int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.3',
+                      u'metricValue': 0,
+                      u'tenantId': u'2',
+                      u'ttlInSeconds': 172800,
+                      u'unit': u'days'},
+                     {u'collectionTime': 0,
+                      u'metricName': u'int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.4',
+                      u'metricValue': 0,
+                      u'tenantId': u'2',
+                      u'ttlInSeconds': 172800,
+                      u'unit': u'days'},
+                     {u'collectionTime': 0,
+                      u'metricName': u'int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.5',
+                      u'metricValue': 0,
+                      u'tenantId': u'2',
+                      u'ttlInSeconds': 172800,
+                      u'unit': u'days'}]
+    self.assertSequenceEqual(payload, valid_payload)
 
   # def test_make_request(self):
   #   global sleep_time
