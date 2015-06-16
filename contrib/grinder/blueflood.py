@@ -6,15 +6,16 @@ except ImportError:
 import time
 from utils import *
 
-class IngestThread(ThreadType):
+class IngestThread(AbstractThread):
   batches = []
   @classmethod
   def create_batches(cls, agent_number):
-    cls.batches =  cls.generate_metrics_tenants(default_config['batch_size'], 
-                                                default_config['tenant_ids'], 
-                                                default_config['metrics_per_tenant'], agent_number, 
-                                                default_config['num_nodes'], 
-                                                cls.generate_metrics_for_tenant)
+    metrics =  cls.generate_metrics_tenants(default_config['tenant_ids'], 
+                                            default_config['metrics_per_tenant'], agent_number, 
+                                            default_config['num_nodes'], 
+                                            cls.generate_metrics_for_tenant)
+
+    cls.batches = cls.divide_batches(metrics, default_config['batch_size'])
 
   @classmethod
   def num_threads(cls):
@@ -26,6 +27,13 @@ class IngestThread(ThreadType):
     for x in range(metrics_per_tenant):
       l.append([tenant_id, x])
     return l
+
+  @classmethod
+  def divide_batches(cls, metrics, batch_size):
+    b = []
+    for i in range(0, len(metrics), batch_size):
+      b.append(metrics[i:i+batch_size])
+    return b
 
   def generate_metric(self, time, tenant_id, metric_id):
     return {'tenantId': str(tenant_id),

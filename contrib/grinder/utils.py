@@ -77,17 +77,17 @@ class ThreadManager(object):
     return thread_type(thread_num)
 
 
-class ThreadType(object):
+class AbstractThread(object):
   @classmethod
   def create_batches(cls, agent_number):
-    pass
+    raise("Can't create abstract thread")
 
   @classmethod
   def num_threads(cls):
-    pass
+    raise("Can't create abstract thread")
 
   def make_request(self, logger, request):
-    pass
+    raise("Can't create abstract thread")
 
   def __init__(self, thread_num):
     start, end = self.generate_job_range(len(self.batches), 
@@ -95,13 +95,6 @@ class ThreadType(object):
     self.slice = self.batches[start:end]
     self.position = 0
     self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
-
-  @classmethod
-  def divide_batches(cls, metrics, batch_size):
-    b = []
-    for i in range(0, len(metrics), batch_size):
-      b.append(metrics[i:i+batch_size])
-    return b
 
   @classmethod
   def generate_job_range(cls, total_jobs, total_servers, server_num):
@@ -115,14 +108,14 @@ class ThreadType(object):
     return (start_job, end_job)
 
   @classmethod
-  def generate_metrics_tenants(cls, batch_size, tenant_ids, metrics_per_tenant, 
+  def generate_metrics_tenants(cls, tenant_ids, metrics_per_tenant, 
                                agent_number, num_nodes, gen_fn):
     tenants_in_shard = range(*cls.generate_job_range(tenant_ids, num_nodes, agent_number))
     metrics = []
     for y in map(lambda x: gen_fn(x, metrics_per_tenant), tenants_in_shard):
       metrics += y
     random.shuffle(metrics)
-    return cls.divide_batches(metrics, batch_size)
+    return metrics
 
   def generate_metric_name(self, metric_id):
     return default_config['name_fmt'] % metric_id
