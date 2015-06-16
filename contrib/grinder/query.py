@@ -7,9 +7,9 @@ import time
 from utils import *
 
 class QueryThread(AbstractThread):
-  batches = []
+  metrics = []
   @classmethod
-  def create_batches(cls, agent_number):
+  def create_metrics(cls, agent_number):
     pass
 
   def num_threads(cls):

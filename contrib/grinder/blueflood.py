@@ -7,15 +7,15 @@ import time
 from utils import *
 
 class IngestThread(AbstractThread):
-  batches = []
+  metrics = []
   @classmethod
-  def create_batches(cls, agent_number):
+  def create_metrics(cls, agent_number):
     metrics =  cls.generate_metrics_tenants(default_config['tenant_ids'], 
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'], 
                                             cls.generate_metrics_for_tenant)
 
-    cls.batches = cls.divide_batches(metrics, default_config['batch_size'])
+    cls.metrics = cls.divide_metrics_into_batches(metrics, default_config['batch_size'])
 
   @classmethod
   def num_threads(cls):
@@ -29,7 +29,7 @@ class IngestThread(AbstractThread):
     return l
 
   @classmethod
-  def divide_batches(cls, metrics, batch_size):
+  def divide_metrics_into_batches(cls, metrics, batch_size):
     b = []
     for i in range(0, len(metrics), batch_size):
       b.append(metrics[i:i+batch_size])

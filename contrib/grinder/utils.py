@@ -56,9 +56,9 @@ class ThreadManager(object):
   def prn_types(self):
     print self.types
 
-  def create_all_batches(self, agent_number):
+  def create_all_metrics(self, agent_number):
     for x in self.types:
-      x.create_batches(agent_number)
+      x.create_metrics(agent_number)
 
   def setup_thread(self, thread_num, grinder):
     thread_type = None
@@ -79,7 +79,7 @@ class ThreadManager(object):
 
 class AbstractThread(object):
   @classmethod
-  def create_batches(cls, agent_number):
+  def create_metrics(cls, agent_number):
     raise("Can't create abstract thread")
 
   @classmethod
@@ -90,9 +90,9 @@ class AbstractThread(object):
     raise("Can't create abstract thread")
 
   def __init__(self, thread_num):
-    start, end = self.generate_job_range(len(self.batches), 
+    start, end = self.generate_job_range(len(self.metrics), 
                                     self.num_threads(), thread_num)
-    self.slice = self.batches[start:end]
+    self.slice = self.metrics[start:end]
     self.position = 0
     self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
 

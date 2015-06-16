@@ -21,7 +21,7 @@ import time
 test1 = Test(1, "Ingest resource")
 request = HTTPRequest()
 thread_manager = blueflood.ThreadManager()
-thread_manager.create_all_batches(grinder.getAgentNumber())
+thread_manager.create_all_metrics(grinder.getAgentNumber())
 test1.record(request)
  
 class TestRunner:

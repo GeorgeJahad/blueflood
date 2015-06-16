@@ -39,8 +39,8 @@ class BluefloodTests(unittest.TestCase):
     blueflood.default_config.update(test_config)
 
   def test_init_process(self):
-    self.tm.create_all_batches(0)
-    self.assertSequenceEqual(blueflood.IngestThread.batches,
+    self.tm.create_all_metrics(0)
+    self.assertSequenceEqual(blueflood.IngestThread.metrics,
                              [[[0, 0], [0, 1], [0, 2]],
                               [[0, 3], [0, 4], [0, 5]],
                               [[0, 6], [1, 0], [1, 1]],
@@ -58,8 +58,8 @@ class BluefloodTests(unittest.TestCase):
                              [[[1, 2], [1, 3], [1, 4]], 
                               [[1, 5], [1, 6]]])
 
-    self.tm.create_all_batches(1)
-    self.assertSequenceEqual(blueflood.IngestThread.batches,
+    self.tm.create_all_metrics(1)
+    self.assertSequenceEqual(blueflood.IngestThread.metrics,
                              [[[2, 0], [2, 1], [2, 2]], 
                               [[2, 3], [2, 4], [2, 5]], 
                               [[2, 6]]])
@@ -75,7 +75,7 @@ class BluefloodTests(unittest.TestCase):
 
 
   def test_generate_payload(self):
-    self.tm.create_all_batches(1)
+    self.tm.create_all_metrics(1)
     thread = blueflood.IngestThread(0)
     payload = json.loads(thread.generate_payload(0, [[2, 3], [2, 4], [2, 5]]))
     valid_payload = [{u'collectionTime': 0,
