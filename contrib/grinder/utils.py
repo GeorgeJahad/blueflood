@@ -80,7 +80,8 @@ class ThreadType(object):
   def create_batches(cls, agent_number):
     pass
 
-  def num_threads(self):
+  @classmethod
+  def num_threads(cls):
     pass
 
   def make_request(self, logger, request):

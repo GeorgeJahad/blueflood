@@ -15,15 +15,16 @@ class IngestThread(ThreadType):
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'])
 
+  def num_threads(cls):
+    return default_config['ingest_concurrency']
+
   def __init__(self, thread_num):
     start, end = self.generate_job_range(len(self.batches), 
-                                    default_config['ingest_concurrency'], thread_num)
+                                    self.num_threads(), thread_num)
     self.slice = self.batches[start:end]
     self.position = 0
     self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
 
-  def num_threads(self):
-    return default_config['ingest_concurrency']
 
   def generate_metric_name(self, metric_id):
     return default_config['name_fmt'] % metric_id
