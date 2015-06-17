@@ -1,4 +1,4 @@
-import itertools, random
+import random
 try: 
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
@@ -36,6 +36,7 @@ class IngestThread(AbstractThread):
     return b
 
   def __init__(self, thread_num):
+    AbstractThread.__init__(self, thread_num)
     start, end = self.generate_job_range(len(self.metrics), 
                                     self.num_threads(), thread_num)
     self.slice = self.metrics[start:end]

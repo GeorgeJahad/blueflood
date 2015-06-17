@@ -26,7 +26,7 @@ stage_config = {
   'metrics_per_tenant': 210,
   'batch_size': 1500,
   'ingest_concurrency': 25,
-  'num_nodes': 1,
+  'num_nodes': 2,
   'url':  "http://staging.metrics-ingest.api.rackspacecloud.com",
   'query_url':  "http://staging.metrics.api.rackspacecloud.com",
   'query_concurrency': 50,
@@ -42,7 +42,7 @@ units_map = {0: 'minutes',
              5: 'decades'}
 
 
-default_config = qe01_config
+default_config = stage_config
 
 RAND_MAX =  982374239
 

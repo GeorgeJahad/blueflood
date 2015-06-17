@@ -1,4 +1,4 @@
-import itertools, random
+import random
 try: 
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
@@ -27,6 +27,7 @@ class QueryThread(AbstractThread):
     return default_config['query_concurrency']
 
   def __init__(self, thread_num):
+    AbstractThread.__init__(self, thread_num)
     start_query, end_query = self.generate_job_range(self.num_queries_for_current_node,
                                                                   ThreadManager.total_threads,
                                                                   thread_num)
@@ -35,12 +36,19 @@ class QueryThread(AbstractThread):
   def get_query_type(self):
     num = random.randint(0, self.total_queries)
     for x in self.query_types:
-      print "gbjnum", num
       if num < default_config[x]:
         return x
       num -= default_config[x]
 
     raise("Invalid query type")
+
+  def generate_singleplot(self, time):
+    tenant_id = random.randint(0, default_config['num_tenants'])
+    metric_name = self.generate_metric_name(random.randint(0, default_config['metrics_per_tenant']))
+    to = time
+    from = time - (* 1000 60 60 24)
+    resolution = 'FULL'
+    url = xxxyy
 
   def generate_payload(self, time):
     payload = map(lambda x:self.generate_metric(time,*x), batch)
