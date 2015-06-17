@@ -7,14 +7,18 @@ import time
 from utils import *
 
 class QueryThread(AbstractThread):
-  num_queries_for_current_node = []
+  num_queries_for_current_node = 0
+  total_queries = 0
+  query_types = ('search_queries_per_interval',
+                 'singleplot_per_interval',
+                 'multiplot_per_interval')
 
   @classmethod
   def create_metrics(cls, agent_number):
-    total_queries = (default_config['search_queries_per_interval'] + 
-                                default_config['singleplot_per_interval'] + 
-                                default_config['singleplot_per_interval']) 
-    start_job, end_job = cls.generate_job_range(total_queries, 
+    for x in cls.query_types:
+      cls.total_queries += default_config[x]
+
+    start_job, end_job = cls.generate_job_range(cls.total_queries, 
                                                 default_config['num_nodes'], agent_number)
     cls.num_queries_for_current_node = end_job - start_job
 
@@ -27,6 +31,16 @@ class QueryThread(AbstractThread):
                                                                   ThreadManager.total_threads,
                                                                   thread_num)
     self.num_queries_for_current_thread = end_query - start_query
+
+  def get_query_type(self):
+    num = random.randint(0, self.total_queries)
+    for x in self.query_types:
+      print "gbjnum", num
+      if num < default_config[x]:
+        return x
+      num -= default_config[x]
+
+    raise("Invalid query type")
 
   def generate_payload(self, time):
     payload = map(lambda x:self.generate_metric(time,*x), batch)

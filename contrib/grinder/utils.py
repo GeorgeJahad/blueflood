@@ -53,6 +53,7 @@ class ThreadManager(object):
   @classmethod
   def add_type(cls, type):
     cls.types.append(type)
+    cls.total_threads += type.num_threads()
 
   def prn_types(self):
     print self.types
@@ -60,7 +61,6 @@ class ThreadManager(object):
   def create_all_metrics(self, agent_number):
     for x in self.types:
       x.create_metrics(agent_number)
-      self.total_threads += x.num_threads()
 
   def setup_thread(self, thread_num, grinder):
     thread_type = None
