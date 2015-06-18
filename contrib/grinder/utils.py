@@ -6,15 +6,16 @@ pp = pprint.pprint
 
 qe01_config = {
   'name_fmt': "t4.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
-  'report_interval': (1000 * 6),
+  'report_interval': (1000 * 10),
   'num_tenants': 4,
-  'metrics_per_tenant': 10,
+  'metrics_per_tenant': 15,
   'batch_size': 5,
-  'ingest_concurrency': 1,
+  'ingest_concurrency': 15,
   'num_nodes': 1,
   'url': "http://qe01.metrics-ingest.api.rackspacecloud.com",
   'query_url': "http://qe01.metrics.api.rackspacecloud.com",
-  'query_concurrency': 100,
+  'query_concurrency': 10,
+  'max_multiplot_metrics': 10,
   'search_queries_per_interval': 10,
   'multiplot_per_interval': 10,
   'singleplot_per_interval': 10}
@@ -30,6 +31,7 @@ stage_config = {
   'url':  "http://staging.metrics-ingest.api.rackspacecloud.com",
   'query_url':  "http://staging.metrics.api.rackspacecloud.com",
   'query_concurrency': 50,
+  'max_multiplot_metrics': 10,
   'search_queries_per_interval': 100,
   'multiplot_per_interval': 20,
   'singleplot_per_interval': 300}
@@ -45,6 +47,7 @@ local_config = {
   'url': "http://localhost:19000",
   'query_url': "http://localhost:20000",
   'query_concurrency': 10,
+  'max_multiplot_metrics': 10,
   'search_queries_per_interval': 10,
   'multiplot_per_interval': 10,
   'singleplot_per_interval': 10}
@@ -57,7 +60,7 @@ units_map = {0: 'minutes',
              5: 'decades'}
 
 
-default_config = local_config
+default_config = qe01_config
 
 RAND_MAX =  982374239
 
