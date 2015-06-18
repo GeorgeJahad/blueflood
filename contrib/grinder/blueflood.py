@@ -58,6 +58,9 @@ class IngestThread(AbstractThread):
 
 
   def make_request(self, logger, request_handler):
+    if len(self.slice) == 0:
+      logger("Warning: no work for current thread")
+      time.sleep(1000)
     self.check_position(logger, len(self.slice))
     payload = self.generate_payload(int(time.time()),
                                            self.slice[self.position])

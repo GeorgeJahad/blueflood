@@ -12,8 +12,9 @@
 from net.grinder.script.Grinder import grinder
 from net.grinder.script import Test
 from net.grinder.plugin.http import HTTPRequest
-from HTTPClient import NVPair
+
 import blueflood
+import query
 import time
 
 #The code inside the class is gets executed by each worker thread

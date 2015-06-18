@@ -9,14 +9,18 @@ from utils import *
 class QueryThread(AbstractThread):
   num_queries_for_current_node = 0
   total_queries = 0
+  queries_per_intervals = ('singleplot_per_interval', 
+                       'search_queries_per_interval', 'multiplot_per_interval')
   @classmethod
   def create_metrics(cls, agent_number):
-    for x in cls.query_types.values():
-      cls.total_queries += default_config[x['interval']]
+    for q in cls.queries_per_intervals:
+      cls.total_queries += default_config[q]
+      print "gbjc", cls.total_queries
 
     start_job, end_job = cls.generate_job_range(cls.total_queries, 
                                                 default_config['num_nodes'], agent_number)
     cls.num_queries_for_current_node = end_job - start_job
+
 
   @classmethod
   def num_threads(cls):
@@ -24,27 +28,23 @@ class QueryThread(AbstractThread):
 
   def __init__(self, thread_num):
     AbstractThread.__init__(self, thread_num)
+    self.query_fns = {'singleplot_per_interval': self.generate_singleplot,
+                      'search_queries_per_interval': self.generate_search,
+                      'multiplot_per_interval': self.generate_multiplot}
+
     start_query, end_query = self.generate_job_range(self.num_queries_for_current_node,
                                                                   ThreadManager.total_threads,
                                                                   thread_num)
     self.num_queries_for_current_thread = end_query - start_query
-    self.query_types = {
-      'singleplot': {'interval': 'singleplot_per_interval',
-                     'method': self.generate_singleplot},
-      'search':     {'interval': 'search_queries_per_interval',
-                     'method': self.generate_search},
-      'multiplot':  {'interval': 'multiplot_per_interval',
-                     'method': self.generate_multiplot}}
-
 
   def get_query_fn(self):
     num = random.randint(0, self.total_queries)
-    for v in self.query_types.values():
-      if num < default_config[v['interval']]:
-        return default_config[v['method']]
-      num -= default_config[v['interval']]
+    for q in self.queries_per_intervals:
+      if num < default_config[q]:
+        return self.query_fns[q]
+      num -= default_config[q]
                                                                   
-    raise("Invalid query type")
+    raise Exception("Invalid query type")
 
   def generate_multiplot_payload():
     metrics_count = min(default_config['max_multiplot_metrics'], 
@@ -67,11 +67,12 @@ class QueryThread(AbstractThread):
     url =  "%s/v2.0/%d/views/%s?from=%d&to=%s&resolution=%s" % (default_config['query_url'],
                                                                 tenant_id, metric_name, frm,
                                                                 to, resolution)
-    return request_handler.GET(url)
+    result = request_handler.GET(url)
+    logger(result.getText())
 
   def make_request(self, logger, request_handler):
     self.check_position(logger, self.num_queries_for_current_thread)
-    result = (self.get_query_fn)(int(time.time()), logger, request_handler)
+    result = (self.get_query_fn())(int(time.time()), logger, request_handler)
     self.position += 1
     return result
 

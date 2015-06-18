@@ -34,6 +34,21 @@ stage_config = {
   'multiplot_per_interval': 20,
   'singleplot_per_interval': 300}
 
+local_config = {
+  'name_fmt': "t4.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
+  'report_interval': (1000 * 10),
+  'num_tenants': 4,
+  'metrics_per_tenant': 15,
+  'batch_size': 5,
+  'ingest_concurrency': 15,
+  'num_nodes': 1,
+  'url': "http://localhost:19000",
+  'query_url': "http://localhost:20000",
+  'query_concurrency': 10,
+  'search_queries_per_interval': 10,
+  'multiplot_per_interval': 10,
+  'singleplot_per_interval': 10}
+
 units_map = {0: 'minutes',
              1: 'hours',
              2: 'days',
@@ -42,7 +57,7 @@ units_map = {0: 'minutes',
              5: 'decades'}
 
 
-default_config = stage_config
+default_config = local_config
 
 RAND_MAX =  982374239
 
@@ -74,6 +89,7 @@ class ThreadManager(object):
         server_num -= x.num_threads()
 
     if thread_type == None:
+      print "gbjerror ", thread_num, self.types
       raise Exception("Invalid Thread Type")
 
     return thread_type(thread_num)
@@ -82,14 +98,14 @@ class ThreadManager(object):
 class AbstractThread(object):
   @classmethod
   def create_metrics(cls, agent_number):
-    raise("Can't create abstract thread")
+    raise Exception("Can't create abstract thread")
 
   @classmethod
   def num_threads(cls):
-    raise("Can't create abstract thread")
+    raise Exception("Can't create abstract thread")
 
   def make_request(self, logger, request):
-    raise("Can't create abstract thread")
+    raise Exception("Can't create abstract thread")
 
   def __init__(self, thread_num):
     self.position = 0
