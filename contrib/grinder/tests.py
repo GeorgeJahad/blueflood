@@ -4,10 +4,11 @@ from coverage import coverage
 cov = coverage()
 cov.start()
 
+import time
+import utils
 import blueflood
 import unittest
 import random
-import time
 try: 
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
@@ -17,7 +18,7 @@ import pprint
 pp = pprint.pprint
 sleep_time = -1
 
-def mock_sleep(x):
+def mock_sleep(cls, x):
   global sleep_time
   sleep_time = x
 
@@ -29,14 +30,14 @@ class BluefloodTests(unittest.TestCase):
   def setUp(self):
     self.real_shuffle = random.shuffle
     self.real_randint = random.randint
-    self.real_time = time.time
-    self.real_sleep = time.sleep
+    self.real_time = utils.AbstractThread.time
+    self.real_sleep = utils.AbstractThread.sleep
     self.tm = blueflood.ThreadManager()
     
     random.shuffle = lambda x: None
     random.randint = lambda x,y: 0
-#    time.time = lambda:1
-    time.sleep = mock_sleep
+    utils.AbstractThread.time = lambda x:1
+    utils.AbstractThread.sleep = mock_sleep
     test_config = {'report_interval': (1000 * 6),
                    'num_tenants': 3,
                    'metrics_per_tenant': 7,
@@ -114,16 +115,17 @@ class BluefloodTests(unittest.TestCase):
     thread.slice = [[[2, 0], [2, 1]]]
     thread.position = 0
     thread.finish_time = 10
+    valid_payload = [{"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0"}, {"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1"}]
+
     url, payload = thread.make_request(pp, req)
     self.assertEqual(url, 
                      'http://qe01.metrics-ingest.api.rackspacecloud.com/v2.0/tenantId/ingest/multi')
-    # self.assertEqual(payload,
-    #                          '[{"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0"}, {"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1"}]')
+    self.assertEqual(eval(payload), valid_payload)
     self.assertEqual(thread.position, 1)
     self.assertEqual(thread.finish_time, 10)
     thread.position = 2
     thread.make_request(pp, req)
-#    self.assertEqual(sleep_time, 9)
+    self.assertEqual(sleep_time, 9)
     self.assertEqual(thread.position, 1)
     self.assertEqual(thread.finish_time, 16)
 
@@ -131,8 +133,8 @@ class BluefloodTests(unittest.TestCase):
   def tearDown(self):
     random.shuffle = self.real_shuffle
     random.randint = self.real_randint
-#    time.time = self.real_time
-    time.sleep = self.real_sleep
+    utils.AbstractThread.time = self.real_time
+    utils.AbstractThread.sleep = self.real_sleep
 
 #if __name__ == '__main__':
 unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(BluefloodTests))
@@ -140,8 +142,7 @@ unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(Bluefl
 
 
 cov.stop()
-cov.save
-cov.report()
+cov.save()
 class TestRunner:
   def __init__(self):
     pass

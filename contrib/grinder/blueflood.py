@@ -3,7 +3,6 @@ try:
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
   import json
-import time
 from utils import *
 
 class IngestThread(AbstractThread):
@@ -60,9 +59,9 @@ class IngestThread(AbstractThread):
   def make_request(self, logger, request_handler):
     if len(self.slice) == 0:
       logger("Warning: no work for current thread")
-      time.sleep(1000)
+      self.sleep(1000)
     self.check_position(logger, len(self.slice))
-    payload = self.generate_payload(int(time.time()),
+    payload = self.generate_payload(int(self.time()),
                                            self.slice[self.position])
     self.position += 1
     result = request_handler.POST(self.ingest_url(), payload)

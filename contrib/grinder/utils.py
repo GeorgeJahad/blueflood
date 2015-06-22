@@ -112,7 +112,7 @@ class AbstractThread(object):
 
   def __init__(self, thread_num):
     self.position = 0
-    self.finish_time = int(time.time()) + (default_config['report_interval'] / 1000)
+    self.finish_time = int(self.time()) + (default_config['report_interval'] / 1000)
 
   @classmethod
   def generate_job_range(cls, total_jobs, total_servers, server_num):
@@ -145,11 +145,19 @@ class AbstractThread(object):
   def check_position(self, logger, max_position):
     if self.position >= max_position:
       self.position = 0
-      sleep_time = self.finish_time - int(time.time())
+      sleep_time = self.finish_time - int(self.time())
       self.finish_time += (default_config['report_interval'] / 1000)
       if sleep_time < 0:
         #return error
         logger("finish time error")
       else:
         logger("pausing for %d" % sleep_time)
-        time.sleep(sleep_time)
+        self.sleep(sleep_time)
+
+  @classmethod
+  def time(cls):
+    return time.time()
+
+  @classmethod
+  def sleep(cls, x):
+    return time.sleep(x)

@@ -3,7 +3,6 @@ try:
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
   import json
-import time
 from utils import *
 
 class QueryThread(AbstractThread):
@@ -97,7 +96,7 @@ class QueryThread(AbstractThread):
 
   def make_request(self, logger, request_handler):
     self.check_position(logger, self.num_queries_for_current_thread)
-    result = (self.get_query_fn())(int(time.time()), logger, request_handler)
+    result = (self.get_query_fn())(int(self.time()), logger, request_handler)
     self.position += 1
     return result
 
