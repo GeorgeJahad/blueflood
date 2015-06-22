@@ -33,7 +33,7 @@ class QueryThread(AbstractThread):
                       'multiplot_per_interval': self.generate_multiplot}
 
     start_query, end_query = self.generate_job_range(self.num_queries_for_current_node,
-                                                                  ThreadManager.total_threads,
+                                                                  self.num_threads(),
                                                                   thread_num)
     self.num_queries_for_current_thread = end_query - start_query
 

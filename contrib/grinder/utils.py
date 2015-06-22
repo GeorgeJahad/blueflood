@@ -1,42 +1,11 @@
 import pprint
 import time
 import random
+from net.grinder.script.Grinder import grinder
 
 pp = pprint.pprint
 
-qe01_config = {
-  'name_fmt': "t4.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
-  'report_interval': (1000 * 10),
-  'num_tenants': 4,
-  'metrics_per_tenant': 15,
-  'batch_size': 5,
-  'ingest_concurrency': 15,
-  'num_nodes': 1,
-  'url': "http://qe01.metrics-ingest.api.rackspacecloud.com",
-  'query_url': "http://qe01.metrics.api.rackspacecloud.com",
-  'query_concurrency': 10,
-  'max_multiplot_metrics': 10,
-  'search_queries_per_interval': 10,
-  'multiplot_per_interval': 10,
-  'singleplot_per_interval': 10}
-
-stage_config = {
-  'name_fmt': "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
-  'report_interval': (1000 * 60),
-  'num_tenants': 23000,
-  'metrics_per_tenant': 210,
-  'batch_size': 1500,
-  'ingest_concurrency': 25,
-  'num_nodes': 2,
-  'url':  "http://staging.metrics-ingest.api.rackspacecloud.com",
-  'query_url':  "http://staging.metrics.api.rackspacecloud.com",
-  'query_concurrency': 50,
-  'max_multiplot_metrics': 10,
-  'search_queries_per_interval': 100,
-  'multiplot_per_interval': 20,
-  'singleplot_per_interval': 300}
-
-local_config = {
+default_config = {
   'name_fmt': "t4.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
   'report_interval': (1000 * 10),
   'num_tenants': 4,
@@ -60,18 +29,31 @@ units_map = {0: 'minutes',
              5: 'decades'}
 
 
-default_config = qe01_config
-
 RAND_MAX =  982374239
 
 class ThreadManager(object):
   types = []
-  total_threads = 0
+
 
   @classmethod
   def add_type(cls, type):
     cls.types.append(type)
-    cls.total_threads += type.num_threads()
+
+  def convert(self, s):
+    try:
+      return int(s)
+    except:
+      return eval(s)
+
+  def setup_config(self, grinder):
+    for entry in grinder.getProperties().entrySet():       
+      if not entry.key.startswith("grinder.bf."):
+        continue
+      k = entry.key.replace("grinder.bf.","")
+      default_config[k] = self.convert(entry.value)
+
+  def __init__(self, grinder):
+    self.setup_config(grinder)
 
   def prn_types(self):
     print self.types
@@ -80,7 +62,7 @@ class ThreadManager(object):
     for x in self.types:
       x.create_metrics(agent_number)
 
-  def setup_thread(self, thread_num, grinder):
+  def setup_thread(self, thread_num):
     thread_type = None
     server_num = thread_num
 

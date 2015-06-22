@@ -9,6 +9,9 @@ import utils
 import blueflood
 import unittest
 import random
+import grinder
+from net.grinder.script.Grinder import grinder
+
 try: 
   from com.xhaus.jyson import JysonCodec as json
 except ImportError:
@@ -32,7 +35,7 @@ class BluefloodTests(unittest.TestCase):
     self.real_randint = random.randint
     self.real_time = utils.AbstractThread.time
     self.real_sleep = utils.AbstractThread.sleep
-    self.tm = blueflood.ThreadManager()
+    self.tm = blueflood.ThreadManager(grinder)
     
     random.shuffle = lambda x: None
     random.randint = lambda x,y: 0

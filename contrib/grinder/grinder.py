@@ -21,13 +21,13 @@ import time
 #Outside the class is executed before any of the workers begin
 test1 = Test(1, "Ingest resource")
 request = HTTPRequest()
-thread_manager = blueflood.ThreadManager()
+thread_manager = blueflood.ThreadManager(grinder)
 thread_manager.create_all_metrics(grinder.getAgentNumber())
 test1.record(request)
  
 class TestRunner:
   def __init__(self):
-    self.thread = thread_manager.setup_thread(grinder.getThreadNumber(), grinder)
+    self.thread = thread_manager.setup_thread(grinder.getThreadNumber())
     runs = grinder.getProperties().getInt("grinder.runs",-1)
 
   def __call__(self):
