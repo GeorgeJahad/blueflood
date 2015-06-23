@@ -1,5 +1,5 @@
 grinder.script=../scripts/grinder.py
-grinder.package_path=/Library/Python/2.7/site-packages
+grinder.package_path=/usr/local/lib/python2.7/dist-packages
 grinder.runs=0
 grinder.consoleHost=192.168.7.12
 grinder.threads=75
