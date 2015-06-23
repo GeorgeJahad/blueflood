@@ -1,8 +1,8 @@
 grinder.script=../scripts/grinder.py
 grinder.package_path=/Library/Python/2.7/site-packages
 grinder.runs=0
+grinder.consoleHost=192.168.7.12
 grinder.threads=75
-grinder.useConsole=false
 grinder.logDirectory=logs
 grinder.bf.name_fmt="int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d"
 grinder.bf.report_interval=60000
