@@ -64,6 +64,16 @@ class BluefloodTests(unittest.TestCase):
     blueflood.default_config.update(test_config)
 
   def test_init_process(self):
+    t1 = self.tm.setup_thread(0)
+    self.assertEqual(type(t1), blueflood.IngestThread)
+
+    t1 = self.tm.setup_thread(blueflood.default_config['ingest_concurrency'])
+    self.assertEqual(type(t1), query.QueryThread)
+
+    tot_threads = (blueflood.default_config['ingest_concurrency'] + blueflood.default_config['query_concurrency'])
+    self.assertRaises(ImportError,self.tm.setup_thread, tot_threads)
+
+
     self.tm.create_all_metrics(0)
     self.assertEqual(blueflood.IngestThread.metrics,
                              [[[0, 0], [0, 1], [0, 2]],

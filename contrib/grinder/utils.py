@@ -46,14 +46,22 @@ class ThreadManager(object):
       return eval(s)
 
   def setup_config(self, grinder):
-    for entry in grinder.getProperties().entrySet():       
+    for entry in grinder.getProperties().entrySet():
+      if entry.key == "grinder.threads":
+        self.tot_threads = self.convert(entry.value)
+      if entry.key.find("concurrency"):
+        self.concurrent_threads += self.convert(entry.value)
       if not entry.key.startswith("grinder.bf."):
         continue
       k = entry.key.replace("grinder.bf.","")
       default_config[k] = self.convert(entry.value)
 
   def __init__(self, grinder):
+    self.tot_threads = 0
+    self.concurrent_threads = 0
     self.setup_config(grinder)
+    if self.tot_threads != self.concurrent_threads:
+      raise Exception("Configuration error: grinder.threads doesn't equal total concurrent threads")
 
   def create_all_metrics(self, agent_number):
     for x in self.types:
@@ -71,7 +79,6 @@ class ThreadManager(object):
         server_num -= x.num_threads()
 
     if thread_type == None:
-      print "gbjerror ", thread_num, self.types
       raise Exception("Invalid Thread Type")
 
     return thread_type(thread_num)

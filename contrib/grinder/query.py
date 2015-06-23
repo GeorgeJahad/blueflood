@@ -96,6 +96,10 @@ class QueryThread(AbstractThread):
     return result
 
   def make_request(self, logger, request_handler):
+    if self.num_queries_for_current_thread == 0:
+      logger("Warning: no work for current thread")
+      self.sleep(1000)
+      return None
     self.check_position(logger, self.num_queries_for_current_thread)
     result = (self.get_query_fn())(int(self.time()), logger, request_handler)
     self.position += 1
