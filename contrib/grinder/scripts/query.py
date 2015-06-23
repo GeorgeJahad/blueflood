@@ -10,10 +10,11 @@ from net.grinder.plugin.http import HTTPRequest
 class QueryThread(AbstractThread):
   num_queries_for_current_node = 0
   total_queries = 0
-  queries_per_intervals = ('singleplot_per_interval', 
+  query_names = ('singleplot_per_interval', 
                        'search_queries_per_interval', 'multiplot_per_interval')
   one_day = (1000 * 60 * 60 * 24)
 
+  # Grinder test infrastructure
   sptest = Test(2, "Singleplot test")
   sprequest = HTTPRequest()
   sptest.record(sprequest)
@@ -30,9 +31,10 @@ class QueryThread(AbstractThread):
   @classmethod
   def create_metrics(cls, agent_number):
     if cls.total_queries == 0:
-      for q in cls.queries_per_intervals:
+      for q in cls.query_names:
         cls.total_queries += default_config[q]
 
+    #divide the total number of queries into the ones need by this worker
     start_job, end_job = cls.generate_job_range(cls.total_queries, 
                                                 default_config['num_nodes'], agent_number)
     cls.num_queries_for_current_node = end_job - start_job
@@ -48,14 +50,17 @@ class QueryThread(AbstractThread):
                       'search_queries_per_interval': self.generate_search,
                       'multiplot_per_interval': self.generate_multiplot}
 
+    #divide the total work for this worker process into the work for this thread
     start_query, end_query = self.generate_job_range(self.num_queries_for_current_node,
                                                                   self.num_threads(),
                                                                   thread_num)
     self.num_queries_for_current_thread = end_query - start_query
 
   def get_query_fn(self):
+    # Randomly select a query type based on the proportion of the various types
+    # to the total number of queries per interval
     num = random.randint(0, self.total_queries)
-    for q in self.queries_per_intervals:
+    for q in self.query_names:
       if num < default_config[q]:
         return self.query_fns[q]
       num -= default_config[q]

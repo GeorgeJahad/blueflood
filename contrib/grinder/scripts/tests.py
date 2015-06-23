@@ -1,3 +1,6 @@
+# It is difficult to invoke the Python coverage tool externally with Jython, so it
+# is being invoked internally here:
+
 import net.grinder.script.Grinder
 package_path = net.grinder.script.Grinder.grinder.getProperties().getProperty("grinder.package_path")
 import sys
@@ -31,7 +34,7 @@ def mock_sleep(cls, x):
   global sleep_time
   sleep_time = x
 
-class TestReq():
+class MockReq():
   def POST(self, url, payload):
     global post_url, post_payload
     post_url = url
@@ -50,7 +53,7 @@ class BluefloodTests(unittest.TestCase):
     self.real_time = utils.AbstractThread.time
     self.real_sleep = utils.AbstractThread.sleep
     self.tm = blueflood.ThreadManager(net.grinder.script.Grinder.grinder)
-    req = TestReq()
+    req = MockReq()
     blueflood.IngestThread.request = req
     query.QueryThread.sprequest = req
     query.QueryThread.mprequest = req
@@ -72,16 +75,21 @@ class BluefloodTests(unittest.TestCase):
     blueflood.default_config.update(test_config)
 
   def test_init_process(self):
+
+    #confirm that threadnum 0 is an ingest thread
     t1 = self.tm.setup_thread(0)
     self.assertEqual(type(t1), blueflood.IngestThread)
 
+    #confirm that the threadnum after all ingest threads is a query thread
     t1 = self.tm.setup_thread(blueflood.default_config['ingest_concurrency'])
     self.assertEqual(type(t1), query.QueryThread)
 
+    #confirm that a threadnum after all valid thread types raises an exception
     tot_threads = (blueflood.default_config['ingest_concurrency'] + blueflood.default_config['query_concurrency'])
     self.assertRaises(Exception,self.tm.setup_thread, tot_threads)
 
 
+    #confirm that the correct batches of ingest metrics are created for worker 0
     self.tm.create_all_metrics(0)
     self.assertEqual(blueflood.IngestThread.metrics,
                              [[[0, 0], [0, 1], [0, 2]],
@@ -91,6 +99,7 @@ class BluefloodTests(unittest.TestCase):
                               [[1, 5], [1, 6]]])
     
 
+    #confirm that the correct batch slices are created for individual threads
     thread = blueflood.IngestThread(0)
     self.assertEqual(thread.slice,
                              [[[0, 0], [0, 1], [0, 2]],
@@ -101,6 +110,8 @@ class BluefloodTests(unittest.TestCase):
                              [[[1, 2], [1, 3], [1, 4]], 
                               [[1, 5], [1, 6]]])
 
+    # confirm that the number of queries is correctly distributed across
+    #  each thread in this worker process
     self.assertEqual(query.QueryThread.total_queries, 30)
     self.assertEqual(query.QueryThread.num_queries_for_current_node, 15)
 
@@ -110,6 +121,7 @@ class BluefloodTests(unittest.TestCase):
     thread = query.QueryThread(4)
     self.num_queries_for_current_thread = 2
 
+    #confirm that the correct batches of ingest metrics are created for worker 1
     self.tm.create_all_metrics(1)
     self.assertEqual(blueflood.IngestThread.metrics,
                              [[[2, 0], [2, 1], [2, 2]], 
@@ -165,13 +177,17 @@ class BluefloodTests(unittest.TestCase):
     valid_payload = [{"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0"}, {"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1"}]
 
     url, payload = thread.make_request(pp)
+    #confirm request generates proper URL and payload
     self.assertEqual(url, 
                      'http://qe01.metrics-ingest.api.rackspacecloud.com/v2.0/tenantId/ingest/multi')
     self.assertEqual(eval(payload), valid_payload)
+
+    #confirm request increments position if not at end of report interval
     self.assertEqual(thread.position, 1)
     self.assertEqual(thread.finish_time, 10)
     thread.position = 2
     thread.make_request(pp)
+    #confirm request resets position at end of report interval
     self.assertEqual(sleep_time, 9)
     self.assertEqual(thread.position, 1)
     self.assertEqual(thread.finish_time, 16)

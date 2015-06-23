@@ -8,13 +8,22 @@ from net.grinder.script import Test
 from net.grinder.plugin.http import HTTPRequest
 
 class IngestThread(AbstractThread):
+  # The list of metric numbers for all threads in this worker
   metrics = []
+  
+  # Grinder test reporting infrastructure
   test1 = Test(1, "Ingest test")
   request = HTTPRequest()
   test1.record(request)
 
+
   @classmethod
   def create_metrics(cls, agent_number):
+    """ Generate all the metrics for this worker
+
+    The metrics are a list of batches.  Each batch is a list of metrics processed by
+    a single metrics ingest request.
+    """
     metrics =  cls.generate_metrics_tenants(default_config['num_tenants'], 
                                             default_config['metrics_per_tenant'], agent_number, 
                                             default_config['num_nodes'], 
@@ -42,6 +51,7 @@ class IngestThread(AbstractThread):
 
   def __init__(self, thread_num):
     AbstractThread.__init__(self, thread_num)
+    # Initialize the "slice" of the metrics to be sent by this thread
     start, end = self.generate_job_range(len(self.metrics), 
                                     self.num_threads(), thread_num)
     self.slice = self.metrics[start:end]

@@ -1,9 +1,6 @@
-import pprint
 import time
 import random
 from net.grinder.script.Grinder import grinder
-
-pp = pprint.pprint
 
 default_config = {
   'name_fmt': "t4.int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.%d",
@@ -32,8 +29,8 @@ units_map = {0: 'minutes',
 RAND_MAX =  982374239
 
 class ThreadManager(object):
+  #keep track of the various thread types
   types = []
-
 
   @classmethod
   def add_type(cls, type):
@@ -46,6 +43,7 @@ class ThreadManager(object):
       return eval(s)
 
   def setup_config(self, grinder):
+    #Parse the properties file and update default_config dictionary
     for entry in grinder.getProperties().entrySet():
       if entry.value.startswith(".."):
         continue
@@ -66,10 +64,20 @@ class ThreadManager(object):
       raise Exception("Configuration error: grinder.threads doesn't equal total concurrent threads")
 
   def create_all_metrics(self, agent_number):
+    """Step through all the attached types and have them create their metrics"""
     for x in self.types:
       x.create_metrics(agent_number)
 
   def setup_thread(self, thread_num):
+    """Figure out which type thread to create based on thread_num and return it
+
+    Creates threads of various types for use by the grinder to load
+    test various parts of blueflood.  The code is structured so that
+    the thread type is determined by the thread num.  The grinder
+    properties file determines how many of each type to create based
+    on the "ingest_concurrency" and "query_concurrency" options.
+
+    """
     thread_type = None
     server_num = thread_num
 
@@ -87,6 +95,7 @@ class ThreadManager(object):
 
 
 class AbstractThread(object):
+  #superclass for the various thread types
   @classmethod
   def create_metrics(cls, agent_number):
     raise Exception("Can't create abstract thread")
@@ -99,11 +108,21 @@ class AbstractThread(object):
     raise Exception("Can't create abstract thread")
 
   def __init__(self, thread_num):
+    # The threads only do so many invocations for each 'report_interval'
+    # position refers to the current position for current interval
     self.position = 0
+
+    # finish_time is the end time of the interval
     self.finish_time = int(self.time()) + (default_config['report_interval'] / 1000)
 
   @classmethod
   def generate_job_range(cls, total_jobs, total_servers, server_num):
+    """ Determine which subset of the total work the current server is to do.
+
+    The properties file is the same for all the distributed workers and lists the
+    total amount of work to be done for each report interval.  This method allows
+    you to split that work up into the exact subset to be done by the "server_num" worker
+    """
     jobs_per_server = total_jobs/total_servers
     remainder = total_jobs % total_servers
     start_job = jobs_per_server * server_num
@@ -116,6 +135,7 @@ class AbstractThread(object):
   @classmethod
   def generate_metrics_tenants(cls, num_tenants, metrics_per_tenant, 
                                agent_number, num_nodes, gen_fn):
+    """ generate the subset of the total metrics to be done by this agent"""
     tenants_in_shard = range(*cls.generate_job_range(num_tenants, num_nodes, agent_number))
     metrics = []
     for y in map(lambda x: gen_fn(x, metrics_per_tenant), tenants_in_shard):
@@ -131,6 +151,7 @@ class AbstractThread(object):
     return units_map[unit_number]
 
   def check_position(self, logger, max_position):
+    """Sleep if finished all work for report interval"""
     if self.position >= max_position:
       self.position = 0
       sleep_time = self.finish_time - int(self.time())
