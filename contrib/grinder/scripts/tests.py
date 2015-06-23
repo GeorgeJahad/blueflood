@@ -71,7 +71,7 @@ class BluefloodTests(unittest.TestCase):
     self.assertEqual(type(t1), query.QueryThread)
 
     tot_threads = (blueflood.default_config['ingest_concurrency'] + blueflood.default_config['query_concurrency'])
-    self.assertRaises(ImportError,self.tm.setup_thread, tot_threads)
+    self.assertRaises(Exception,self.tm.setup_thread, tot_threads)
 
 
     self.tm.create_all_metrics(0)

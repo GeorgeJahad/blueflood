@@ -1,3 +1,4 @@
+import rpdb
 import pprint
 import time
 import random
@@ -47,9 +48,11 @@ class ThreadManager(object):
 
   def setup_config(self, grinder):
     for entry in grinder.getProperties().entrySet():
+      if entry.value.startswith(".."):
+        continue
       if entry.key == "grinder.threads":
         self.tot_threads = self.convert(entry.value)
-      if entry.key.find("concurrency"):
+      if entry.key.find("concurrency") >= 0:
         self.concurrent_threads += self.convert(entry.value)
       if not entry.key.startswith("grinder.bf."):
         continue
