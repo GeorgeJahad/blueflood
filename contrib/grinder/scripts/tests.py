@@ -48,11 +48,17 @@ class BluefloodTests(unittest.TestCase):
     self.real_time = utils.AbstractThread.time
     self.real_sleep = utils.AbstractThread.sleep
     self.tm = blueflood.ThreadManager(grinder)
-    
+    req = TestReq()
+    blueflood.IngestThread.request = req
+    query.QueryThread.sprequest = req
+    query.QueryThread.mprequest = req
+    query.QueryThread.searchrequest = req
+
     random.shuffle = lambda x: None
     random.randint = lambda x,y: 0
     utils.AbstractThread.time = lambda x:1
     utils.AbstractThread.sleep = mock_sleep
+
     test_config = {'report_interval': (1000 * 6),
                    'num_tenants': 3,
                    'metrics_per_tenant': 7,
@@ -150,38 +156,36 @@ class BluefloodTests(unittest.TestCase):
 
   def test_ingest_make_request(self):
     global sleep_time
-    req = TestReq()
     thread = blueflood.IngestThread(0)
     thread.slice = [[[2, 0], [2, 1]]]
     thread.position = 0
     thread.finish_time = 10
     valid_payload = [{"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0"}, {"collectionTime": 1, "ttlInSeconds": 172800, "tenantId": "2", "metricValue": 0, "unit": "days", "metricName": "int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1"}]
 
-    url, payload = thread.make_request(pp, req)
+    url, payload = thread.make_request(pp)
     self.assertEqual(url, 
                      'http://qe01.metrics-ingest.api.rackspacecloud.com/v2.0/tenantId/ingest/multi')
     self.assertEqual(eval(payload), valid_payload)
     self.assertEqual(thread.position, 1)
     self.assertEqual(thread.finish_time, 10)
     thread.position = 2
-    thread.make_request(pp, req)
+    thread.make_request(pp)
     self.assertEqual(sleep_time, 9)
     self.assertEqual(thread.position, 1)
     self.assertEqual(thread.finish_time, 16)
 
 
   def test_query_make_request(self):
-    req = TestReq()
     thread = query.QueryThread(0)
-    thread.make_request(pp, req)
+    thread.make_request(pp)
     self.assertEqual(get_url, "http://qe01.metrics.api.rackspacecloud.com/v2.0/0/views/int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0?from=-86399999&to=1&resolution=FULL")
 
     random.randint = lambda x,y: 10
-    thread.make_request(pp, req)
+    thread.make_request(pp)
     self.assertEqual(get_url, "http://qe01.metrics.api.rackspacecloud.com/v2.0/10/metrics/search?query=int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.*")
 
     random.randint = lambda x,y: 20
-    thread.make_request(pp, req)
+    thread.make_request(pp)
     self.assertEqual(post_url, "http://qe01.metrics.api.rackspacecloud.com/v2.0/20/views?from=-86399999&to=1&resolution=FULL")
     self.assertEqual(eval(post_payload), ["int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.2","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.3","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.4","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.5","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.6","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.7","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.8","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.9"])
 

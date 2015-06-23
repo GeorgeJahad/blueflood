@@ -4,9 +4,15 @@ try:
 except ImportError:
   import json
 from utils import *
+from net.grinder.script import Test
+from net.grinder.plugin.http import HTTPRequest
 
 class IngestThread(AbstractThread):
   metrics = []
+  test1 = Test(1, "Ingest test")
+  request = HTTPRequest()
+  test1.record(request)
+
   @classmethod
   def create_metrics(cls, agent_number):
     metrics =  cls.generate_metrics_tenants(default_config['num_tenants'], 
@@ -56,7 +62,7 @@ class IngestThread(AbstractThread):
     return "%s/v2.0/tenantId/ingest/multi" % default_config['url']
 
 
-  def make_request(self, logger, request_handler):
+  def make_request(self, logger):
     if len(self.slice) == 0:
       logger("Warning: no work for current thread")
       self.sleep(1000)
@@ -65,7 +71,7 @@ class IngestThread(AbstractThread):
     payload = self.generate_payload(int(self.time()),
                                            self.slice[self.position])
     self.position += 1
-    result = request_handler.POST(self.ingest_url(), payload)
+    result = self.request.POST(self.ingest_url(), payload)
     return result
 
 ThreadManager.add_type(IngestThread)
