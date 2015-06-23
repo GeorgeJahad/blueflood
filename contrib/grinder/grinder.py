@@ -15,7 +15,6 @@ from net.grinder.plugin.http import HTTPRequest
 
 import blueflood
 import query
-import time
 
 #The code inside the class is gets executed by each worker thread
 #Outside the class is executed before any of the workers begin
@@ -28,7 +27,6 @@ test1.record(request)
 class TestRunner:
   def __init__(self):
     self.thread = thread_manager.setup_thread(grinder.getThreadNumber())
-    runs = grinder.getProperties().getInt("grinder.runs",-1)
 
   def __call__(self):
     result = self.thread.make_request(grinder.logger.info, request)

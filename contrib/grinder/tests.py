@@ -7,6 +7,7 @@ cov.start()
 import time
 import utils
 import blueflood
+import query
 import unittest
 import random
 import grinder
@@ -20,6 +21,9 @@ import pprint
 
 pp = pprint.pprint
 sleep_time = -1
+get_url = None
+post_url = None
+post_payload = None
 
 def mock_sleep(cls, x):
   global sleep_time
@@ -27,7 +31,15 @@ def mock_sleep(cls, x):
 
 class TestReq():
   def POST(self, url, payload):
+    global post_url, post_payload
+    post_url = url
+    post_payload = payload
     return url, payload
+
+  def GET(self, url):
+    global get_url
+    get_url = url
+    return url
 
 class BluefloodTests(unittest.TestCase):
   def setUp(self):
@@ -59,8 +71,8 @@ class BluefloodTests(unittest.TestCase):
                               [[0, 6], [1, 0], [1, 1]],
                               [[1, 2], [1, 3], [1, 4]],
                               [[1, 5], [1, 6]]])
-
     
+
     thread = blueflood.IngestThread(0)
     self.assertEqual(thread.slice,
                              [[[0, 0], [0, 1], [0, 2]],
@@ -70,6 +82,15 @@ class BluefloodTests(unittest.TestCase):
     self.assertEqual(thread.slice,
                              [[[1, 2], [1, 3], [1, 4]], 
                               [[1, 5], [1, 6]]])
+
+    self.assertEqual(query.QueryThread.total_queries, 30)
+    self.assertEqual(query.QueryThread.num_queries_for_current_node, 15)
+
+    thread = query.QueryThread(0)
+    self.num_queries_for_current_thread = 2
+
+    thread = query.QueryThread(4)
+    self.num_queries_for_current_thread = 2
 
     self.tm.create_all_metrics(1)
     self.assertEqual(blueflood.IngestThread.metrics,
@@ -86,6 +107,12 @@ class BluefloodTests(unittest.TestCase):
     self.assertEqual(thread.slice,
                              [[[2, 6]]])
 
+
+    thread = query.QueryThread(0)
+    self.num_queries_for_current_thread = 2
+
+    thread = query.QueryThread(5)
+    self.num_queries_for_current_thread = 1
 
   def test_generate_payload(self):
     self.tm.create_all_metrics(1)
@@ -111,7 +138,7 @@ class BluefloodTests(unittest.TestCase):
                       u'unit': u'days'}]
     self.assertEqual(payload, valid_payload)
 
-  def test_make_request(self):
+  def test_ingest_make_request(self):
     global sleep_time
     req = TestReq()
     thread = blueflood.IngestThread(0)
@@ -133,11 +160,28 @@ class BluefloodTests(unittest.TestCase):
     self.assertEqual(thread.finish_time, 16)
 
 
+  def test_query_make_request(self):
+    req = TestReq()
+    thread = query.QueryThread(0)
+    thread.make_request(pp, req)
+    self.assertEqual(get_url, "http://qe01.metrics.api.rackspacecloud.com/v2.0/0/views/int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0?from=-86399999&to=1&resolution=FULL")
+
+    random.randint = lambda x,y: 10
+    thread.make_request(pp, req)
+    self.assertEqual(get_url, "http://qe01.metrics.api.rackspacecloud.com/v2.0/10/metrics/search?query=int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.*")
+
+    random.randint = lambda x,y: 20
+    thread.make_request(pp, req)
+    self.assertEqual(post_url, "http://qe01.metrics.api.rackspacecloud.com/v2.0/20/views?from=-86399999&to=1&resolution=FULL")
+    self.assertEqual(eval(post_payload), ["int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.0","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.1","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.2","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.3","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.4","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.5","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.6","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.7","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.8","int.abcdefg.hijklmnop.qrstuvw.xyz.ABCDEFG.HIJKLMNOP.QRSTUVW.XYZ.abcdefg.hijklmnop.qrstuvw.xyz.met.9"])
+
+
   def tearDown(self):
     random.shuffle = self.real_shuffle
     random.randint = self.real_randint
     utils.AbstractThread.time = self.real_time
     utils.AbstractThread.sleep = self.real_sleep
+
 
 #if __name__ == '__main__':
 unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(BluefloodTests))

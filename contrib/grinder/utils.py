@@ -55,9 +55,6 @@ class ThreadManager(object):
   def __init__(self, grinder):
     self.setup_config(grinder)
 
-  def prn_types(self):
-    print self.types
-
   def create_all_metrics(self, agent_number):
     for x in self.types:
       x.create_metrics(agent_number)

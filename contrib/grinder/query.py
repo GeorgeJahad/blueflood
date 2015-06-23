@@ -11,11 +11,12 @@ class QueryThread(AbstractThread):
   queries_per_intervals = ('singleplot_per_interval', 
                        'search_queries_per_interval', 'multiplot_per_interval')
   one_day = (1000 * 60 * 60 * 24)
+
   @classmethod
   def create_metrics(cls, agent_number):
-    for q in cls.queries_per_intervals:
-      cls.total_queries += default_config[q]
-      print "gbjc", cls.total_queries
+    if cls.total_queries == 0:
+      for q in cls.queries_per_intervals:
+        cls.total_queries += default_config[q]
 
     start_job, end_job = cls.generate_job_range(cls.total_queries, 
                                                 default_config['num_nodes'], agent_number)
@@ -62,7 +63,7 @@ class QueryThread(AbstractThread):
                                                                 tenant_id, frm,
                                                                 to, resolution)
     result = request_handler.POST(url, payload)
-    logger(result.getText())
+#    logger(result.getText())
     return result
 
 
@@ -77,7 +78,7 @@ class QueryThread(AbstractThread):
     url = "%s/v2.0/%d/metrics/search?query=%s" % (default_config['query_url'],
                                                                 tenant_id, metric_regex)
     result = request_handler.GET(url)
-    logger(result.getText())
+#    logger(result.getText())
     return result
                                                                
 
@@ -101,4 +102,3 @@ class QueryThread(AbstractThread):
     return result
 
 ThreadManager.add_type(QueryThread)
-
