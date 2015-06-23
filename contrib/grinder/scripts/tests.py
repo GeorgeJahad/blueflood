@@ -1,5 +1,7 @@
+import net.grinder.script.Grinder
+package_path = net.grinder.script.Grinder.grinder.getProperties().getProperty("grinder.package_path")
 import sys
-sys.path.append('/Library/Python/2.7/site-packages')
+sys.path.append(package_path)
 from coverage import coverage
 cov = coverage()
 cov.start()
@@ -11,7 +13,7 @@ import query
 import unittest
 import random
 import grinder
-from net.grinder.script.Grinder import grinder
+
 
 try: 
   from com.xhaus.jyson import JysonCodec as json
@@ -47,7 +49,7 @@ class BluefloodTests(unittest.TestCase):
     self.real_randint = random.randint
     self.real_time = utils.AbstractThread.time
     self.real_sleep = utils.AbstractThread.sleep
-    self.tm = blueflood.ThreadManager(grinder)
+    self.tm = blueflood.ThreadManager(net.grinder.script.Grinder.grinder)
     req = TestReq()
     blueflood.IngestThread.request = req
     query.QueryThread.sprequest = req
