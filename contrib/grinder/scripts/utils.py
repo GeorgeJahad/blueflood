@@ -40,7 +40,7 @@ class ThreadManager(object):
     try:
       return int(s)
     except:
-      return eval(s)
+      return s
 
   def setup_config(self, grinder):
     #Parse the properties file and update default_config dictionary
