@@ -58,7 +58,7 @@ def get_rows_with_ttl(db_client, args):
     results = ()
     try:
         prepared_stmt = db_client.session.prepare(cqlstr)
-        results = db_client.session.execute(prepared_stmt)
+        results = db_client.session.execute(prepared_stmt,[],None)
     except Exception as e:
         print "Error (" + type(e).__name__ + " Exception): " + e.message
 
