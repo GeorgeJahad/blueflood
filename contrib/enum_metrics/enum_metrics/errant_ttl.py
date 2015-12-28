@@ -51,14 +51,14 @@ def get_rows_with_ttl(db_client, args):
     """
     return all records with tll for columnFamily
     """
-    cqlstr = "SELECT key, column1, value, ttl(value) as ttl_val FROM " + args.columnFamily
+    cqlstr = "SELECT key, column1, value, ttl(value) as ttl_val FROM " + args.columnFamily + " where column1 < 1419462072000 allow filtering"
     if int(args.limit) > 0: cqlstr += " limit " + str(args.limit)
 
     if is_verbose: print "cqlstr: " + cqlstr
     results = ()
     try:
         prepared_stmt = db_client.session.prepare(cqlstr)
-        results = db_client.session.execute(prepared_stmt,[],None)
+        results = db_client.session.execute(prepared_stmt,[],180.0)
     except Exception as e:
         print "Error (" + type(e).__name__ + " Exception): " + e.message
 
